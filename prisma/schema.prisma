@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+// Define database connection via the `DATABASE_URL` env var
+datasource db {
+  provider = "postgresql"
+}
+
+model Form {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  userId     String  
+  name      String?
+  published Boolean @default(false)
+  description String @default("")
+  visits Int @default(0)
+  submissions Int @default(0)
+
+  shareURL String  @unique @default(uuid()) 
+
+  content String @default("[]")
+  FormSubmissions FormSubmission[] @relation("FormToSubmission")
+
+  @@unique([name, userId])
+}
+
+model FormSubmission {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  formId Int
+  form Form @relation("FormToSubmission", fields: [formId], references: [id])
+  content String 
+}
