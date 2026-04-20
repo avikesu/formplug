@@ -6,7 +6,6 @@ import { LuView } from "react-icons/lu";
 import { FaWpforms } from "react-icons/fa";
 import { HiCursorClick } from "react-icons/hi";
 import { TbArrowBounce } from "react-icons/tb";
-import { ElementsType, FormElementInstance } from "@/components/FormElements";
 import {
   Table,
   TableBody,
@@ -15,8 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ElementsType } from "@/components/FormElements";
 import { formatDistance } from "date-fns";
 import { ReactNode } from "react";
+import { parseFormElements, parseSubmissionValues } from "@/lib/forms";
 
 async function FormDetailPage(props: { params: Promise<{ id: string }> }) {
   //throw new Error('Test error page');
@@ -100,7 +101,10 @@ async function FormDetailPage(props: { params: Promise<{ id: string }> }) {
 
 export default FormDetailPage;
 
-type Row = { [key: string]: string } & { submittedAt: Date };
+type Row = {
+  values: Record<string, string>;
+  submittedAt: Date;
+};
 
 async function SubmissionsTable({ id }: { id: number }) {
   const form = await GetFormWithSubmissions(id);
@@ -109,7 +113,7 @@ async function SubmissionsTable({ id }: { id: number }) {
     throw new Error("Form not found");
   }
 
-  const formElements = JSON.parse(form.content) as FormElementInstance[];
+  const formElements = parseFormElements(form.content);
   const columns: {
     id: string;
     label: string;
@@ -120,10 +124,19 @@ async function SubmissionsTable({ id }: { id: number }) {
   formElements.forEach((element) => {
     switch (element.type) {
       case "TextField":
+        const label =
+          typeof element.properties?.label === "string"
+            ? element.properties.label
+            : "Untitled field";
+        const required =
+          typeof element.properties?.required === "boolean"
+            ? element.properties.required
+            : false;
+
         columns.push({
           id: element.id,
-          label: element.properties?.label,
-          required: element.properties?.required,
+          label,
+          required,
           type: element.type,
         });
         break;
@@ -134,9 +147,9 @@ async function SubmissionsTable({ id }: { id: number }) {
 
   const rows: Row[] = [];
   form.FormSubmissions.forEach((submission) => {
-    const content = JSON.parse(submission.content);
+    const content = parseSubmissionValues(submission.content);
     rows.push({
-      ...content,
+      values: content,
       submittedAt: submission.createdAt,
     });
   });
@@ -164,8 +177,7 @@ async function SubmissionsTable({ id }: { id: number }) {
                 {columns.map((column) => (
                   <RowCell
                     key={column.id}
-                    type={column.type}
-                    value={row[column.id]}
+                    value={row.values[column.id] ?? ""}
                   />
                 ))}
                 <TableCell className="text-muted-foreground text-right">
@@ -182,7 +194,7 @@ async function SubmissionsTable({ id }: { id: number }) {
   );
 }
 
-function RowCell({ type, value }: { type: ElementsType; value: string }) {
-  let node: ReactNode = value;
+function RowCell({ value }: { value: string }) {
+  const node: ReactNode = value;
   return <TableCell>{node}</TableCell>;
 }
