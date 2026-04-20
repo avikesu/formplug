@@ -1,8 +1,11 @@
 "use client";
-import { Form } from "@/lib/generated/prisma/client";
-import PreviewDialogBtn from "./PreviewDialogBtn";
-import SaveFormBtn from "./SaveFormBtn";
-import PublishFormBtn from "./PublishFormBtn";
+
+import {
+  coerceFormContentDocument,
+  FormBuilderDocument,
+  parseFormContentDocument,
+  serializeFormContentDocument,
+} from "@/lib/forms";
 import Designer from "./Designer";
 import {
   DndContext,
@@ -12,19 +15,158 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import DragOverlayWrapper from "./DragOverlayWrapper";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import useDesigner from "./hooks/useDesigner";
-import { ImSpinner2 } from "react-icons/im";
-import { Input } from "./ui/input";
+import { FormElementSidebarGroup, FormElementsRegistry } from "./FormElements";
+import { FormElementsProvider } from "./context/FormElementsContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
-import { toast } from "sonner";
-import Link from "next/link";
-import { BsArrowLeft, BsArrowRight } from "react-icons/bs";
-import Confetti from "react-confetti";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import FormSubmitComponent from "./FormSubmitComponent";
+import { FormBuilderSettings } from "@/lib/form-builder-settings";
+import { FormPageDocument } from "@/lib/form-pages";
+import { cn } from "@/lib/utils";
 
-function FormBuilder({ form }: { form: Form }) {
-  const { setElements } = useDesigner();
-  const [isReady, setIsReady] = useState(false);
+type FormBuilderProps = {
+  form: FormBuilderDocument;
+  toolbar?: ReactNode;
+  publishedView?: ReactNode;
+  registry?: FormElementsRegistry;
+  sidebarGroups?: FormElementSidebarGroup[];
+};
+
+function formatSurveyJson(
+  settings: FormBuilderSettings,
+  pages: FormPageDocument[],
+) {
+  return JSON.stringify(
+    {
+      version: 1,
+      settings,
+      pages,
+    },
+    null,
+    2,
+  );
+}
+
+function FormPreview({
+  form,
+  registry,
+  sidebarGroups,
+}: {
+  form: FormBuilderDocument;
+  registry?: FormElementsRegistry;
+  sidebarGroups?: FormElementSidebarGroup[];
+}) {
+  const { pages, settings } = useDesigner();
+
+  return (
+    <FormSubmitComponent
+      formUrl={form.shareURL}
+      formName={form.name}
+      formDescription={form.description}
+      settings={settings}
+      pages={pages}
+      previewMode
+      registry={registry}
+      sidebarGroups={sidebarGroups}
+      onSubmit={async () => undefined}
+    />
+  );
+}
+
+function JsonEditorPanel() {
+  const {
+    pages,
+    settings,
+    setPages,
+    setSettings,
+    setSelectedElement,
+    setActivePageId,
+  } = useDesigner();
+  const [draft, setDraft] = useState(() => formatSurveyJson(settings, pages));
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(formatSurveyJson(settings, pages));
+    setErrorMessage(null);
+  }, [pages, settings]);
+
+  const applyJsonChanges = () => {
+    try {
+      const parsed = coerceFormContentDocument(JSON.parse(draft) as unknown);
+
+      setSelectedElement(null);
+      setPages(parsed.pages);
+      setSettings(parsed.settings);
+      setActivePageId(parsed.pages[0]?.id ?? null);
+      setDraft(formatSurveyJson(parsed.settings, parsed.pages));
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Invalid survey JSON.",
+      );
+    }
+  };
+
+  const resetDraft = () => {
+    setDraft(formatSurveyJson(settings, pages));
+    setErrorMessage(null);
+  };
+
+  return (
+    <div className="flex h-full w-full justify-center overflow-y-auto p-6 md:p-10">
+      <div className="flex w-full max-w-[920px] flex-col gap-4 rounded-3xl border border-border/60 bg-background/95 p-5 shadow-sm md:p-6">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">JSON Editor</h3>
+            <p className="text-sm text-muted-foreground">
+              Edit the survey model directly. Save persists both layout settings
+              and pages.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={resetDraft}>
+              Reset
+            </Button>
+            <Button onClick={applyJsonChanges}>Apply changes</Button>
+          </div>
+        </div>
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertTitle>Invalid schema</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        <Textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          spellCheck={false}
+          className="min-h-[520px] font-mono text-sm"
+        />
+        <p className="text-xs text-muted-foreground">
+          Current serialized size:{" "}
+          {serializeFormContentDocument({ settings, pages }).length} characters.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BuilderWorkspace({
+  form,
+  toolbar,
+  registry,
+  sidebarGroups,
+}: {
+  form: FormBuilderDocument;
+  toolbar?: ReactNode;
+  registry?: FormElementsRegistry;
+  sidebarGroups?: FormElementSidebarGroup[];
+}) {
+  const [activeTab, setActiveTab] = useState("designer");
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 10 },
@@ -34,97 +176,101 @@ function FormBuilder({ form }: { form: Form }) {
   });
   const sensors = useSensors(mouseSensor, touchSensor);
 
-  useEffect(() => {
-    if (isReady) return;
-    const elements = JSON.parse(form.content);
-    setElements(elements);
-    const readyTimeout = setTimeout(() => setIsReady(true), 500);
-    return () => clearTimeout(readyTimeout);
-  }, [form, setElements]);
-
-  if (!isReady) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-full">
-        <ImSpinner2 className="animate-spin h-12 w12" />
-      </div>
-    );
-  }
-
-  const shareUrl = `${window.location.origin}/submit/${form.shareURL}`;
-  if (form.published) {
-    return (
-      <>
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={900}
-        />
-        <div className="flex flex-col items-center justify-center h-full w-full">
-          <div className="max-w-md">
-            <h1 className="text-center text-4xl font-bold text-primary border-b pb-2 mb-10">
-              🎊Form Published🎊
-            </h1>
-            <h2 className="text-2xl">Share this form</h2>
-            <h3 className="text-xl text-muted-foreground border-b pb-10">
-              Anyone with the link can view and submit the form
-            </h3>
-            <div className="my-4 flex flex-col gap-2 items-center w-full border-b pb-4">
-              <Input className="w-full" readOnly value={shareUrl} />
-              <Button
-                className="mt-2 w-full"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl);
-                  toast.success("Link copied to clipboard");
-                }}
-              >
-                Copy Link
-              </Button>
-            </div>
-            <div className="flex justify-between">
-              <Button variant={"link"} asChild>
-                <Link href={"/"} className="gap-2">
-                  <BsArrowLeft />
-                  Go Back home
-                </Link>
-              </Button>
-              <Button variant={"link"} asChild>
-                <Link href={`/forms/${form.id}`} className="gap-2">
-                  Form Details
-                  <BsArrowRight />
-                </Link>
-              </Button>
-            </div>
-          </div>
+  return (
+    <main className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+      >
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 p-4">
+          <TabsList>
+            <TabsTrigger value="designer">Designer</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="json">JSON Editor</TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2">{toolbar}</div>
         </div>
-      </>
-    );
+        <div
+          className={cn(
+            "relative m-4 mt-4 flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border/60",
+            activeTab === "designer"
+              ? "bg-accent bg-[url(/arangeboard.svg)] dark:bg-[url(/arangeboard-dark.svg)]"
+              : activeTab === "preview"
+                ? "bg-background"
+                : "bg-muted/20",
+          )}
+        >
+          <TabsContent
+            value="designer"
+            className="mt-0 h-full min-h-0 w-full overflow-hidden"
+          >
+            <DndContext sensors={sensors}>
+              <div className="h-full min-h-0">
+                <Designer formName={form.name} />
+              </div>
+              <DragOverlayWrapper />
+            </DndContext>
+          </TabsContent>
+          <TabsContent
+            value="preview"
+            className="mt-0 h-full min-h-0 w-full overflow-y-auto bg-background"
+          >
+            <FormPreview
+              form={form}
+              registry={registry}
+              sidebarGroups={sidebarGroups}
+            />
+          </TabsContent>
+          <TabsContent
+            value="json"
+            className="mt-0 h-full min-h-0 w-full overflow-y-auto bg-muted/20"
+          >
+            <JsonEditorPanel />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </main>
+  );
+}
+
+function FormBuilder({
+  form,
+  toolbar,
+  publishedView,
+  registry,
+  sidebarGroups,
+}: FormBuilderProps) {
+  const { setPages, setSettings, setActivePageId, setSelectedElement } =
+    useDesigner();
+
+  useEffect(() => {
+    setPages(form.pages);
+    setSettings(form.settings);
+    setActivePageId(form.pages[0]?.id ?? null);
+    setSelectedElement(null);
+  }, [
+    form.pages,
+    form.settings,
+    setPages,
+    setSettings,
+    setActivePageId,
+    setSelectedElement,
+  ]);
+
+  if (form.published) {
+    return <>{publishedView}</>;
   }
 
   return (
-    <DndContext sensors={sensors}>
-      <main className="flex flex-col w-full">
-        <nav className="flex justify-between border-b-2 p-4 gap-3 items-center">
-          <h2 className="truncate font-medium">
-            <span className="text-muted-foreground mr-2">Form:</span>
-            {form.name}
-          </h2>
-          <div className="flex items-center gap-2">
-            <PreviewDialogBtn />
-            {!form.published && (
-              <>
-                <SaveFormBtn id={form.id} />
-                <PublishFormBtn id={form.id} />
-              </>
-            )}
-          </div>
-        </nav>
-        <div className="flex w-full grow items-center justify-center relative overflow-y-auto h-[200px] bg-accent bg-[url(/arangeboard.svg)] dark:bg-[url(/arangeboard-dark.svg)]">
-          <Designer />
-        </div>
-      </main>
-      <DragOverlayWrapper />
-    </DndContext>
+    <FormElementsProvider registry={registry} sidebarGroups={sidebarGroups}>
+      <BuilderWorkspace
+        form={form}
+        toolbar={toolbar}
+        registry={registry}
+        sidebarGroups={sidebarGroups}
+      />
+    </FormElementsProvider>
   );
 }
 

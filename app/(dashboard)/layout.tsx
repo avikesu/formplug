@@ -22,7 +22,7 @@ async function Layout({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      <main className="flex w-full grow">{children}</main>
+      <main className="flex min-h-0 w-full grow overflow-hidden">{children}</main>
     </div>
   );
 }

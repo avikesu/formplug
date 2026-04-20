@@ -1,16 +1,21 @@
 import React from "react";
 import useDesigner from "./hooks/useDesigner";
-import { FormElements } from "./FormElements";
+import { getFormElement } from "./FormElements";
 import { Button } from "./ui/button";
 import { AiOutlineClose } from "react-icons/ai";
 import { Separator } from "./ui/separator";
+import { useFormElements } from "./context/FormElementsContext";
+import ElementLayoutSection from "./ElementLayoutSection";
 
 function PropertiesFormSidebar() {
   const { selectedElement, setSelectedElement } = useDesigner();
+  const { registry } = useFormElements();
   if (!selectedElement) return null;
 
-  const PropertiesForm =
-    FormElements[selectedElement?.type].propertiesComponent;
+  const PropertiesForm = getFormElement(
+    registry,
+    selectedElement.type,
+  ).propertiesComponent;
 
   return (
     <div className="flex flex-col p-2">
@@ -26,6 +31,7 @@ function PropertiesFormSidebar() {
       </div>
       <Separator className="mb-4" />
       <PropertiesForm elementInstance={selectedElement} />
+      <ElementLayoutSection element={selectedElement} />
     </div>
   );
 }

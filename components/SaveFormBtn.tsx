@@ -1,21 +1,26 @@
-import React, { use, useTransition } from "react";
+import { useTransition } from "react";
 import { Button } from "./ui/button";
 import { HiSaveAs } from "react-icons/hi";
 import useDesigner from "./hooks/useDesigner";
-import { UpdateFormContent } from "@/actions/form";
 import { toast } from "sonner";
 import { FaSpinner } from "react-icons/fa";
+import { SaveFormContentHandler } from "@/lib/forms";
 
-function SaveFormBtn({ id }: { id: number }) {
-  const { elements } = useDesigner();
+function SaveFormBtn({
+  id,
+  onSave,
+}: {
+  id: number;
+  onSave: SaveFormContentHandler;
+}) {
+  const { pages, settings } = useDesigner();
   const [loading, startTransition] = useTransition();
 
   const updateFormContent = async () => {
     try {
-      const jsonElements = JSON.stringify(elements);
-      await UpdateFormContent(id, jsonElements);
+      await onSave(id, { pages, settings });
       toast.success("Form saved successfully");
-    } catch (error) {
+    } catch {
       toast.error("Error", {
         description: "Failed to save form",
       });

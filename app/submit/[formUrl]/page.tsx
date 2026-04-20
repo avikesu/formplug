@@ -1,6 +1,6 @@
 import { GetFormContentByUrl } from "@/actions/form";
-import { FormElementInstance } from "@/components/FormElements";
-import FormSubmitComponent from "@/components/FormSubmitComponent";
+import AppFormSubmit from "@/components/AppFormSubmit";
+import { parseFormContentDocument } from "@/lib/forms";
 
 async function SubmitPage({
   params,
@@ -15,8 +15,17 @@ async function SubmitPage({
   if (!form) {
     throw new Error("Form not found");
   }
-  const formContent = JSON.parse(form.content) as FormElementInstance[];
-  return <FormSubmitComponent formUrl={formUrl} content={formContent} />;
+  const contentDocument = parseFormContentDocument(form.content);
+
+  return (
+    <AppFormSubmit
+      formUrl={formUrl}
+      formName={form.name}
+      formDescription={form.description}
+      settings={contentDocument.settings}
+      pages={contentDocument.pages}
+    />
+  );
 }
 
 export default SubmitPage;

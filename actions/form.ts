@@ -128,6 +128,8 @@ export async function PublishForm(id: number) {
 export async function GetFormContentByUrl(formUrl: string) {
   return await prisma.form.update({
     select: {
+      name: true,
+      description: true,
       content: true,
     },
     data: {

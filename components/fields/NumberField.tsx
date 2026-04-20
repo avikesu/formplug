@@ -179,6 +179,7 @@ function PropertiesComponent({
     updateElement(instance.id, {
       ...instance,
       properties: {
+        ...instance.properties,
         label,
         helpertext,
         placeholder,

@@ -14,19 +14,25 @@ import {
   AlertDialogAction,
 } from "./ui/alert-dialog";
 import { FaIcons } from "react-icons/fa";
-import { PublishForm } from "@/actions/form";
+import { PublishFormHandler } from "@/lib/forms";
 import { useRouter } from "next/navigation";
 
-function PublishFormBtn({ id }: { id: number }) {
+function PublishFormBtn({
+  id,
+  onPublish,
+}: {
+  id: number;
+  onPublish: PublishFormHandler;
+}) {
   const [loading, startTransition] = useTransition();
   const router = useRouter();
 
   async function publishForm() {
     try {
-      await PublishForm(id);
+      await onPublish(id);
       toast.success("Form published to be used in public successfully");
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error("Error", {
         description: "Failed to publish form",
       });

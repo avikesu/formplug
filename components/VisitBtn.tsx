@@ -1,14 +1,9 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "./ui/button";
 
 function VisitBtn({ shareUrl }: { shareUrl: string }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  if (!mounted) return null;
+  if (typeof window === "undefined") return null;
 
   const shareLink = `${window.location.origin}/submit/${shareUrl}`;
   return (

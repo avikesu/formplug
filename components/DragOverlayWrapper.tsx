@@ -1,11 +1,13 @@
-import { Active, DragOverlay, useDndMonitor } from '@dnd-kit/core';
-import React, { useState } from 'react';
-import { ElementsType, FormElements } from './FormElements';
-import { SidebarBtnElementDragOverlay } from './SidebarBtnElement';
-import useDesigner from './hooks/useDesigner';
+import { Active, DragOverlay, useDndMonitor } from "@dnd-kit/core";
+import React, { useState } from "react";
+import { ElementsType, getFormElement } from "./FormElements";
+import { SidebarBtnElementDragOverlay } from "./SidebarBtnElement";
+import useDesigner from "./hooks/useDesigner";
+import { useFormElements } from "./context/FormElementsContext";
 
 function DragOverlayWrapper() {
-  const { elements } =  useDesigner();
+  const { elements } = useDesigner();
+  const { registry } = useFormElements();
   const [draggedItem, setDraggedItem] = useState<Active | null>(null);
 
   useDndMonitor({
@@ -28,7 +30,11 @@ function DragOverlayWrapper() {
 
   if (isSidebarBtnElement) {
     const type = draggedItem.data?.current?.type as ElementsType;
-    node = <SidebarBtnElementDragOverlay formElement={FormElements[type]} />;
+    node = (
+      <SidebarBtnElementDragOverlay
+        formElement={getFormElement(registry, type)}
+      />
+    );
   }
 
   const isDesignerElement = draggedItem.data?.current?.isDesignerElement;
@@ -37,10 +43,12 @@ function DragOverlayWrapper() {
     const element = elements.find((el) => el.id === elementId);
     if (!element) node = <div>Dragging Element not Found!</div>;
     else {
-      const DesignerElementComponent =
-        FormElements[element.type].designerComponent;
+      const DesignerElementComponent = getFormElement(
+        registry,
+        element.type,
+      ).designerComponent;
       node = (
-        <div className='flex bg-accent border rounded-md h-[120px] w-full py-2 px-4 opacity-80 pointer poi'>
+        <div className="flex bg-accent border rounded-md h-[120px] w-full py-2 px-4 opacity-80 pointer poi">
           <DesignerElementComponent elementInstance={element} />
         </div>
       );

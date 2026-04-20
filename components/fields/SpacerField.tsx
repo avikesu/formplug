@@ -75,7 +75,15 @@ function FormComponent({
   const instance = elementInstance as CustomInstance;
 
   const { height } = instance.properties;
-  return <div style={{ height, width: "100%" }} />;
+  const spacerUnits = Math.max(1, Math.round(height / 4));
+
+  return (
+    <div className="w-full" aria-hidden="true">
+      {Array.from({ length: spacerUnits }, (_, index) => (
+        <div key={index} className="h-1" />
+      ))}
+    </div>
+  );
 }
 
 type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
@@ -103,6 +111,7 @@ function PropertiesComponent({
     updateElement(instance.id, {
       ...instance,
       properties: {
+        ...instance.properties,
         height,
       },
     });

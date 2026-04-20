@@ -1,18 +1,21 @@
-import React from 'react'
-import SidebarBtnElement from './SidebarBtnElement'
-import { FormElements } from './FormElements'
-import useDesigner from './hooks/useDesigner';
-import FormElementSidebar from './FormElementSidebar';
-import PropertiesFormSidebar from './PropertiesFormSidebar';
+import React from "react";
+import useDesigner from "./hooks/useDesigner";
+import PropertiesFormSidebar from "./PropertiesFormSidebar";
+import PagePropertiesSidebar from "./PagePropertiesSidebar";
 
 function DesignerSidebar() {
-  const {selectedElement} = useDesigner();
+  const { selectedElement } = useDesigner();
   return (
-    <aside className="w-[400px] max-w-[400px] flex flex-col grow gap-2 border-l-2 border-muted p-4 bg-background overflow-y-auto h-full">
-        {!selectedElement && <FormElementSidebar/>}
-        {selectedElement && <PropertiesFormSidebar />}
+    <aside className="hidden h-full min-h-0 w-[360px] max-w-[360px] shrink-0 border-l-2 border-muted bg-background lg:flex lg:flex-col lg:overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-y-auto p-4">
+        {selectedElement ? (
+          <PropertiesFormSidebar />
+        ) : (
+          <PagePropertiesSidebar />
+        )}
+      </div>
     </aside>
-  )
+  );
 }
 
-export default DesignerSidebar  
+export default DesignerSidebar;

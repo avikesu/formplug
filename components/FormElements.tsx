@@ -1,3 +1,5 @@
+import { CheckboxFieldFormElement } from "./fields/CheckboxField";
+import { ImageFieldFormElement } from "./fields/ImageField";
 import { NumberFieldFormElement } from "./fields/NumberField";
 import { ParagraphFieldFormElement } from "./fields/ParagraphField";
 import { SeparatorFieldFormElement } from "./fields/SeparatorField";
@@ -7,7 +9,9 @@ import { TextAreaFieldFormElement } from "./fields/TextAreaField";
 import { TextFieldFormElement } from "./fields/TextField";
 import { TitleFieldFormElement } from "./fields/TitleField";
 
-export type ElementsType =
+export type DefaultElementsType =
+  | "CheckboxField"
+  | "ImageField"
   | "TextField"
   | "TitleField"
   | "SubTitleField"
@@ -16,6 +20,9 @@ export type ElementsType =
   | "SpacerField"
   | "NumberField"
   | "TextAreaField";
+
+export type ElementsType = DefaultElementsType | (string & {});
+
 export type SubmitFunction = (key: string, value: string) => void;
 export type FormElement = {
   type: ElementsType;
@@ -45,14 +52,21 @@ export type FormElement = {
 export type FormElementInstance = {
   id: string;
   type: ElementsType;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 };
 
-type FormElementsType = {
-  [key in ElementsType]: FormElement;
+export type FormElementsRegistry = {
+  [key: string]: FormElement;
 };
 
-export const FormElements: FormElementsType = {
+export type FormElementSidebarGroup = {
+  label: string;
+  elementTypes: ElementsType[];
+};
+
+const defaultFormElements: FormElementsRegistry = {
+  CheckboxField: CheckboxFieldFormElement,
+  ImageField: ImageFieldFormElement,
   TextField: TextFieldFormElement,
   TitleField: TitleFieldFormElement,
   SubTitleField: SubTitleFieldFormElement,
@@ -62,3 +76,51 @@ export const FormElements: FormElementsType = {
   NumberField: NumberFieldFormElement,
   TextAreaField: TextAreaFieldFormElement,
 };
+
+export const defaultFormElementSidebarGroups: FormElementSidebarGroup[] = [
+  {
+    label: "Layout elements",
+    elementTypes: [
+      "TitleField",
+      "SubTitleField",
+      "ParagraphField",
+      "SeparatorField",
+      "SpacerField",
+    ],
+  },
+  {
+    label: "Media elements",
+    elementTypes: ["ImageField"],
+  },
+  {
+    label: "Form elements",
+    elementTypes: ["TextField", "NumberField", "TextAreaField", "CheckboxField"],
+  },
+];
+
+export function createFormElementRegistry(
+  customElements: FormElement[] = [],
+): FormElementsRegistry {
+  const registry: FormElementsRegistry = { ...defaultFormElements };
+
+  customElements.forEach((element) => {
+    registry[element.type] = element;
+  });
+
+  return registry;
+}
+
+export function getFormElement(
+  registry: FormElementsRegistry,
+  type: ElementsType,
+): FormElement {
+  const formElement = registry[type];
+
+  if (!formElement) {
+    throw new Error(`Unsupported form element type: ${type}`);
+  }
+
+  return formElement;
+}
+
+export const FormElements = createFormElementRegistry();

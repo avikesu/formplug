@@ -103,6 +103,7 @@ function PropertiesComponent({
     updateElement(instance.id, {
       ...instance,
       properties: {
+        ...instance.properties,
         title,
       },
     });

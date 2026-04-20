@@ -6,9 +6,6 @@ import {
   FormElementInstance,
   SubmitFunction,
 } from "../FormElements";
-import { MdTextFields } from "react-icons/md";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,16 +29,20 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Checkbox } from "../ui/checkbox";
+import { cn } from "@/lib/utils";
+import { MdCheckBox } from "react-icons/md";
 
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
 
-type TextFieldProperties = {
+type CheckboxFieldProperties = {
   label: string;
   helpertext: string;
-  placeholder: string;
+  defaultChecked: boolean;
   visible: boolean;
   readOnly: boolean;
   showTitle: boolean;
@@ -52,10 +53,10 @@ type TextFieldProperties = {
   required: boolean;
 };
 
-const properties: TextFieldProperties = {
-  label: "Text Field",
+const properties: CheckboxFieldProperties = {
+  label: "Checkbox Field",
   helpertext: "Helper text",
-  placeholder: "Enter text",
+  defaultChecked: false,
   visible: true,
   readOnly: false,
   showTitle: true,
@@ -67,9 +68,9 @@ const properties: TextFieldProperties = {
 };
 
 const propertiesSchema = z.object({
-  label: z.string().min(2).max(50),
-  helpertext: z.string().max(200),
-  placeholder: z.string().max(50),
+  label: z.string().min(2).max(80),
+  helpertext: z.string().max(400),
+  defaultChecked: z.boolean(),
   visible: z.boolean(),
   readOnly: z.boolean(),
   showTitle: z.boolean(),
@@ -80,10 +81,16 @@ const propertiesSchema = z.object({
   required: z.boolean(),
 });
 
-const alignmentClassMap: Record<Alignment, string> = {
-  left: "text-left",
-  center: "text-center",
-  right: "text-right",
+const rowAlignmentClassMap: Record<Alignment, string> = {
+  left: "justify-start text-left",
+  center: "justify-center text-center",
+  right: "justify-end text-right",
+};
+
+const contentAlignmentClassMap: Record<Alignment, string> = {
+  left: "items-start text-left",
+  center: "items-center text-center",
+  right: "items-end text-right",
 };
 
 const indentClassMap: Record<number, string> = {
@@ -93,23 +100,25 @@ const indentClassMap: Record<number, string> = {
   3: "pl-12",
 };
 
-function getProperties(source: Record<string, unknown>): TextFieldProperties {
+function getProperties(
+  source: Record<string, unknown>,
+): CheckboxFieldProperties {
   return {
     ...properties,
     ...source,
-  } as TextFieldProperties;
+  } as CheckboxFieldProperties;
 }
 
 function getWrapperClassName(alignment: Alignment, indent: number) {
   return cn(
     "flex w-full flex-col gap-2",
-    alignmentClassMap[alignment],
+    contentAlignmentClassMap[alignment],
     indentClassMap[indent] ?? indentClassMap[0],
   );
 }
 
-const type: ElementsType = "TextField";
-export const TextFieldFormElement: FormElement = {
+const type: ElementsType = "CheckboxField";
+export const CheckboxFieldFormElement: FormElement = {
   type,
   construct: (id: string) => ({
     id,
@@ -117,8 +126,8 @@ export const TextFieldFormElement: FormElement = {
     properties,
   }),
   designerBtnElement: {
-    icon: MdTextFields,
-    label: "Text Field",
+    icon: MdCheckBox,
+    label: "Checkbox Field",
   },
   designerComponent: DesignerComponent,
   formComponent: FormComponent,
@@ -140,7 +149,7 @@ export const TextFieldFormElement: FormElement = {
     }
 
     if (normalizedProperties.required) {
-      return currentValue.length > 0;
+      return currentValue === "true";
     }
 
     return true;
@@ -148,7 +157,7 @@ export const TextFieldFormElement: FormElement = {
 };
 
 type CustomInstance = FormElementInstance & {
-  properties: TextFieldProperties;
+  properties: CheckboxFieldProperties;
 };
 
 function DesignerComponent({
@@ -159,9 +168,8 @@ function DesignerComponent({
   const instance = elementInstance as CustomInstance;
   const {
     label,
-    required,
-    placeholder,
     helpertext,
+    defaultChecked,
     visible,
     readOnly,
     showTitle,
@@ -169,6 +177,7 @@ function DesignerComponent({
     collapseState,
     alignment,
     indent,
+    required,
   } = getProperties(instance.properties);
 
   if (!visible) {
@@ -177,29 +186,28 @@ function DesignerComponent({
 
   return (
     <div className={getWrapperClassName(alignment, indent)}>
-      {showTitle && (
-        <Label className={alignmentClassMap[alignment]}>
-          {label}
-          {required ? "*" : ""}
-        </Label>
-      )}
       {collapseState !== "collapsed" && (
-        <Input
-          readOnly
-          disabled={readOnly || collapseState === "locked"}
-          placeholder={placeholder}
-          className={alignmentClassMap[alignment]}
-        />
-      )}
-      {showDescription && helpertext && (
-        <p
+        <div
           className={cn(
-            "text-[0.8rem] text-muted-foreground",
-            alignmentClassMap[alignment],
+            "flex w-full items-start gap-3",
+            rowAlignmentClassMap[alignment],
           )}
         >
-          {helpertext}
-        </p>
+          <Checkbox checked={defaultChecked} disabled={readOnly || collapseState === "locked"} />
+          {(showTitle || showDescription) && (
+            <div className={cn("flex flex-col gap-1", contentAlignmentClassMap[alignment])}>
+              {showTitle && (
+                <Label className="text-sm font-medium">
+                  {label}
+                  {required ? " *" : ""}
+                </Label>
+              )}
+              {showDescription && helpertext && (
+                <p className="text-[0.8rem] text-muted-foreground">{helpertext}</p>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -217,18 +225,10 @@ function FormComponent({
   defaultValue?: string;
 }) {
   const instance = elementInstance as CustomInstance;
-  const [value, setValue] = useState(defaultValue || "");
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setError(isInvalid === true);
-  }, [isInvalid]);
-
   const {
     label,
-    required,
-    placeholder,
     helpertext,
+    defaultChecked,
     visible,
     readOnly,
     showTitle,
@@ -236,7 +236,20 @@ function FormComponent({
     collapseState,
     alignment,
     indent,
+    required,
   } = getProperties(instance.properties);
+  const [checked, setChecked] = useState(
+    defaultValue ? defaultValue === "true" : defaultChecked,
+  );
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setChecked(defaultValue ? defaultValue === "true" : defaultChecked);
+  }, [defaultChecked, defaultValue]);
+
+  useEffect(() => {
+    setError(isInvalid === true);
+  }, [isInvalid]);
 
   if (!visible) {
     return null;
@@ -244,59 +257,61 @@ function FormComponent({
 
   return (
     <div className={getWrapperClassName(alignment, indent)}>
-      {showTitle && (
-        <Label
-          className={cn(
-            alignmentClassMap[alignment],
-            error && "text-red-500",
-          )}
-        >
-          {label}
-          {required ? "*" : ""}
-        </Label>
-      )}
       {collapseState !== "collapsed" && (
-        <Input
+        <div
           className={cn(
-            alignmentClassMap[alignment],
-            error && "border-red-500",
-          )}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          disabled={collapseState === "locked"}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={(e) => {
-            if (!submitValue || readOnly || collapseState === "locked") {
-              return;
-            }
-
-            const valid = TextFieldFormElement.validate(
-              elementInstance,
-              e.target.value,
-            );
-            setError(!valid);
-            if (!valid) return;
-            submitValue(elementInstance.id, e.target.value);
-          }}
-          value={value}
-        />
-      )}
-      {showDescription && helpertext && (
-        <p
-          className={cn(
-            "text-[0.8rem] text-muted-foreground",
-            alignmentClassMap[alignment],
-            error && "text-red-500",
+            "flex w-full items-start gap-3",
+            rowAlignmentClassMap[alignment],
           )}
         >
-          {helpertext}
-        </p>
+          <Checkbox
+            checked={checked}
+            disabled={collapseState === "locked"}
+            onCheckedChange={(value) => {
+              if (readOnly || collapseState === "locked") {
+                return;
+              }
+
+              const nextChecked = value === true;
+              const nextValue = nextChecked ? "true" : "false";
+              setChecked(nextChecked);
+
+              const valid = CheckboxFieldFormElement.validate(
+                elementInstance,
+                nextValue,
+              );
+              setError(!valid);
+              submitValue?.(elementInstance.id, nextValue);
+            }}
+          />
+          {(showTitle || showDescription) && (
+            <div className={cn("flex flex-col gap-1", contentAlignmentClassMap[alignment])}>
+              {showTitle && (
+                <Label className={cn("text-sm font-medium", error && "text-red-500")}>
+                  {label}
+                  {required ? " *" : ""}
+                </Label>
+              )}
+              {showDescription && helpertext && (
+                <p
+                  className={cn(
+                    "text-[0.8rem] text-muted-foreground",
+                    error && "text-red-500",
+                  )}
+                >
+                  {helpertext}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+type PropertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+
 function PropertiesComponent({
   elementInstance,
 }: {
@@ -304,7 +319,7 @@ function PropertiesComponent({
 }) {
   const instance = elementInstance as CustomInstance;
   const { updateElement } = useDesigner();
-  const form = useForm<propertiesFormSchemaType>({
+  const form = useForm<PropertiesFormSchemaType>({
     resolver: zodResolver(propertiesSchema),
     mode: "onBlur",
     defaultValues: getProperties(instance.properties),
@@ -314,36 +329,12 @@ function PropertiesComponent({
     form.reset(getProperties(instance.properties));
   }, [instance, form]);
 
-  function applyChanges(values: propertiesFormSchemaType) {
-    const {
-      label,
-      helpertext,
-      placeholder,
-      visible,
-      readOnly,
-      showTitle,
-      showDescription,
-      collapseState,
-      alignment,
-      indent,
-      required,
-    } = values;
-
+  function applyChanges(values: PropertiesFormSchemaType) {
     updateElement(instance.id, {
       ...instance,
       properties: {
         ...instance.properties,
-        label,
-        helpertext,
-        placeholder,
-        visible,
-        readOnly,
-        showTitle,
-        showDescription,
-        collapseState,
-        alignment,
-        indent,
-        required,
+        ...values,
       },
     });
   }
@@ -352,8 +343,8 @@ function PropertiesComponent({
     <Form {...form}>
       <form
         onBlur={form.handleSubmit(applyChanges)}
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
         }}
         className="space-y-4"
       >
@@ -364,7 +355,10 @@ function PropertiesComponent({
             <TabsTrigger value="condition">Condition</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="general"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="label"
@@ -374,12 +368,12 @@ function PropertiesComponent({
                   <FormControl>
                     <Input
                       {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur();
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed above the text field.</FormDescription>
+                  <FormDescription>Displayed next to the checkbox.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -395,14 +389,17 @@ function PropertiesComponent({
                     <Textarea
                       {...field}
                       rows={3}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                          e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          (event.ctrlKey || event.metaKey)
+                        ) {
+                          event.currentTarget.blur();
                         }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed below the text field.</FormDescription>
+                  <FormDescription>Displayed below the checkbox title.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -410,19 +407,16 @@ function PropertiesComponent({
 
             <FormField
               control={form.control}
-              name="placeholder"
+              name="defaultChecked"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Placeholder</FormLabel>
+                <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Default checked</FormLabel>
+                    <FormDescription>Start the checkbox in the checked state.</FormDescription>
+                  </div>
                   <FormControl>
-                    <Input
-                      {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                      }}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
-                  <FormDescription>Displayed inside the input when it is empty.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -452,7 +446,7 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Required</FormLabel>
-                    <FormDescription>Require input before submission.</FormDescription>
+                    <FormDescription>Require the checkbox to be checked before submit.</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -469,7 +463,7 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Read-only</FormLabel>
-                    <FormDescription>Display the field without allowing edits.</FormDescription>
+                    <FormDescription>Show the field without allowing changes.</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -486,7 +480,7 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show title</FormLabel>
-                    <FormDescription>Render the title above the field.</FormDescription>
+                    <FormDescription>Render the checkbox title next to the box.</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -503,7 +497,7 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show description</FormLabel>
-                    <FormDescription>Render the description below the field.</FormDescription>
+                    <FormDescription>Render the helper text below the checkbox title.</FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -514,7 +508,10 @@ function PropertiesComponent({
             />
           </TabsContent>
 
-          <TabsContent value="layout" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="layout"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="collapseState"
@@ -533,7 +530,7 @@ function PropertiesComponent({
                       <SelectItem value="expanded">Expanded</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Control whether the field is shown, hidden, or locked.</FormDescription>
+                  <FormDescription>Control whether the checkbox is visible or locked.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -557,7 +554,7 @@ function PropertiesComponent({
                       <SelectItem value="right">Right</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Align the title, input text, and description.</FormDescription>
+                  <FormDescription>Align the checkbox row inside the form layout.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -585,7 +582,7 @@ function PropertiesComponent({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Offset the field from the left edge of the layout.</FormDescription>
+                  <FormDescription>Offset the checkbox row inside the page layout.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

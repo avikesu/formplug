@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 function SidebarBtnElement({ formElement }: { formElement: FormElement }) {
   const { label, icon: Icon } = formElement.designerBtnElement;
-  const draggable = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `designer-btn-${formElement.type}`,
     data: {
       type: formElement.type,
@@ -14,14 +14,14 @@ function SidebarBtnElement({ formElement }: { formElement: FormElement }) {
   });
   return (
     <Button
-      ref={draggable.setNodeRef}
+      ref={setNodeRef}
       variant={"outline"}
       className={cn(
         "flex flex-col gap-2 h-[120px] cursor-grab",
-        draggable.isDragging && "ring-2 ring-primary",
+        isDragging && "ring-2 ring-primary",
       )}
-      {...draggable.attributes}
-      {...draggable.listeners}
+      {...attributes}
+      {...listeners}
     >
       <Icon
         style={{ width: 48, height: 48 }}
