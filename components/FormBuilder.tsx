@@ -60,7 +60,7 @@ function FormPreview({
   registry?: FormElementsRegistry;
   sidebarGroups?: FormElementSidebarGroup[];
 }) {
-  const { pages, settings } = useDesigner();
+  const { activePageId, pages, settings } = useDesigner();
 
   return (
     <FormSubmitComponent
@@ -69,6 +69,7 @@ function FormPreview({
       formDescription={form.description}
       settings={settings}
       pages={pages}
+      initialPageId={activePageId ?? undefined}
       previewMode
       registry={registry}
       sidebarGroups={sidebarGroups}

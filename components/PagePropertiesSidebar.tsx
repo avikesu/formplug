@@ -290,7 +290,7 @@ function PagePropertiesSidebar() {
                 }
               />
               <ColorSettingField
-                label="Question card color"
+                label="Field card color"
                 value={activePage.questionBackgroundColor}
                 fallbackColor="#ffffff"
                 onChange={(value) =>
@@ -298,7 +298,7 @@ function PagePropertiesSidebar() {
                 }
               />
               <ColorSettingField
-                label="Question border color"
+                label="Field card border color"
                 value={activePage.questionBorderColor}
                 fallbackColor="#e2e8f0"
                 onChange={(value) =>

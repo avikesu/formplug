@@ -46,6 +46,7 @@ type FormSubmitContentProps = {
   formName?: string | null;
   formDescription?: string;
   settings?: FormBuilderSettings;
+  initialPageId?: string;
   previewMode?: boolean;
   onSubmit: (formUrl: string, values: FormSubmissionValues) => Promise<unknown>;
 };
@@ -56,6 +57,7 @@ function FormSubmitContent({
   formName,
   formDescription,
   settings = defaultFormBuilderSettings,
+  initialPageId,
   previewMode = false,
   onSubmit,
 }: FormSubmitContentProps) {
@@ -132,15 +134,23 @@ function FormSubmitContent({
 
     if (
       currentPage.pageBackgroundColor.trim() ||
-      currentPage.pageBorderColor.trim() ||
       currentPage.bodyTextColor.trim() ||
       currentPage.contentPadding.trim()
     ) {
       cssRules.push(`
         .${pageClassName}.form-page-surface {
-          ${currentPage.pageBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageBackgroundColor, "#ffffff")};` : ""}
-          ${currentPage.pageBorderColor.trim() ? `border-color: ${sanitizeCssValue(currentPage.pageBorderColor, "#e2e8f0")};` : ""}
           ${currentPage.bodyTextColor.trim() ? `color: ${sanitizeCssValue(currentPage.bodyTextColor, "#475569")};` : ""}
+        }
+      `);
+    }
+
+    if (
+      currentPage.pageBackgroundColor.trim() ||
+      currentPage.contentPadding.trim()
+    ) {
+      cssRules.push(`
+        .${pageClassName}-content {
+          ${currentPage.pageBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageBackgroundColor, "#ffffff")};` : ""}
           ${currentPage.contentPadding.trim() ? `padding: ${sanitizeCssValue(currentPage.contentPadding, "1.5rem")};` : ""}
         }
       `);
@@ -218,6 +228,20 @@ function FormSubmitContent({
     });
   }, [visiblePages.length]);
 
+  useEffect(() => {
+    if (!initialPageId || visiblePages.length === 0) {
+      return;
+    }
+
+    const nextPageIndex = visiblePages.findIndex(
+      (page) => page.id === initialPageId,
+    );
+
+    if (nextPageIndex >= 0) {
+      setCurrentPageIndex(nextPageIndex);
+    }
+  }, [initialPageId, visiblePages]);
+
   const validateForm: () => boolean = useCallback(() => {
     const nextErrors: Record<string, boolean> = {};
 
@@ -261,19 +285,24 @@ function FormSubmitContent({
   }, []);
 
   const submitForm = async () => {
+    const validFrom = validateForm();
+    if (!validFrom) {
+      toast.error(
+        previewMode
+          ? "Preview validation failed. Fix the highlighted fields to continue."
+          : "Please fix the errors in the form before submitting.",
+      );
+      return;
+    }
+
     if (previewMode) {
-      toast.message("Preview mode", {
+      toast.success("Preview validation passed.", {
         description:
-          "This preview uses the same layout as the public submit page, but it does not store responses.",
+          "This preview lets you test validation and field behavior, but it never stores a real submission.",
       });
       return;
     }
 
-    const validFrom = validateForm();
-    if (!validFrom) {
-      toast.error("Please fix the errors in the form before submitting.");
-      return;
-    }
     try {
       await onSubmit(formUrl, formValues);
       setSubmitted(true);
@@ -422,98 +451,107 @@ function FormSubmitContent({
                 </div>
               </div>
             )}
-            {!currentPage || currentPage.elements.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 px-6 py-14 text-center text-sm text-slate-500">
-                This page has no fields yet.
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "grid grid-cols-12 gap-6",
-                  currentPage.readOnly && "pointer-events-none opacity-80",
-                )}
-              >
-                {sortElementsByLayout(currentPage.elements).map((element) => {
-                  const FormElement = getFormElement(
-                    registry,
-                    element.type,
-                  ).formComponent;
-                  const layout = getElementLayout(element.properties);
+            <div
+              className={cn(
+                "flex flex-col gap-6 p-4",
+                `${pageClassName}-content`,
+              )}
+            >
+              {!currentPage || currentPage.elements.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 px-6 py-14 text-center text-sm text-slate-500">
+                  This page has no fields yet.
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    "grid grid-cols-12 gap-6",
+                    currentPage.readOnly && "pointer-events-none opacity-80",
+                  )}
+                >
+                  {sortElementsByLayout(currentPage.elements).map((element) => {
+                    const FormElement = getFormElement(
+                      registry,
+                      element.type,
+                    ).formComponent;
+                    const layout = getElementLayout(element.properties);
 
-                  return (
-                    <div
-                      key={element.id}
-                      className={cn(
-                        "border border-slate-200/80 bg-white/90 p-5 transition-colors",
-                        `${pageClassName}-question`,
-                        formErrors[element.id] && "form-page-question-error",
-                        getElementContainerClassName(layout),
-                        pageRadiusClass,
-                        pageShadowClass,
-                      )}
-                    >
-                      <div className={getElementInnerSpacingClassName(layout)}>
-                        <FormElement
-                          elementInstance={element}
-                          submitValue={submitValue}
-                          isInvalid={formErrors[element.id]}
-                          defaultValue={formValues[element.id]}
-                        />
+                    return (
+                      <div
+                        key={element.id}
+                        className={cn(
+                          "border border-slate-200/80 bg-white/90 p-5 transition-colors",
+                          `${pageClassName}-question`,
+                          formErrors[element.id] && "form-page-question-error",
+                          getElementContainerClassName(layout),
+                          pageRadiusClass,
+                          pageShadowClass,
+                        )}
+                      >
+                        <div
+                          className={getElementInnerSpacingClassName(layout)}
+                        >
+                          <FormElement
+                            elementInstance={element}
+                            submitValue={submitValue}
+                            isInvalid={formErrors[element.id]}
+                            defaultValue={formValues[element.id]}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={() =>
-                  setCurrentPageIndex((currentIndex) =>
-                    Math.max(currentIndex - 1, 0),
-                  )
-                }
-                disabled={currentPageIndex === 0 || pending}
-              >
-                Previous page
-              </Button>
-
-              {currentPageIndex < visiblePages.length - 1 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button
-                  className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
+                  variant="outline"
                   onClick={() =>
                     setCurrentPageIndex((currentIndex) =>
-                      Math.min(currentIndex + 1, visiblePages.length - 1),
+                      Math.max(currentIndex - 1, 0),
                     )
                   }
-                  disabled={pending}
+                  disabled={currentPageIndex === 0 || pending}
                 >
-                  Next page
+                  Previous page
                 </Button>
-              ) : (
-                <Button
-                  className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
-                  onClick={() => {
-                    startTransition(() => {
-                      submitForm();
-                    });
-                  }}
-                  disabled={pending || currentPage?.readOnly}
-                >
-                  {!pending && (
-                    <>
-                      {previewMode ? (
-                        <Send className="mr-2 size-4" />
-                      ) : (
-                        <HiCursorClick className="mr-2" />
-                      )}
-                      {previewMode ? "Preview submission" : "Submit form"}
-                    </>
-                  )}
-                  {pending && <ImSpinner2 className="animate-spin" />}
-                </Button>
-              )}
+
+                {currentPageIndex < visiblePages.length - 1 ? (
+                  <Button
+                    className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
+                    onClick={() =>
+                      setCurrentPageIndex((currentIndex) =>
+                        Math.min(currentIndex + 1, visiblePages.length - 1),
+                      )
+                    }
+                    disabled={pending}
+                  >
+                    Next page
+                  </Button>
+                ) : (
+                  <Button
+                    className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
+                    onClick={() => {
+                      startTransition(() => {
+                        submitForm();
+                      });
+                    }}
+                    disabled={pending || currentPage?.readOnly}
+                  >
+                    {!pending && (
+                      <>
+                        {previewMode ? (
+                          <Send className="mr-2 size-4" />
+                        ) : (
+                          <HiCursorClick className="mr-2" />
+                        )}
+                        {previewMode ? "Validate preview" : "Submit form"}
+                      </>
+                    )}
+                    {pending && <ImSpinner2 className="animate-spin" />}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -529,6 +567,7 @@ function FormSubmitComponent({
   formName,
   formDescription,
   settings,
+  initialPageId,
   previewMode,
   onSubmit,
   registry,
@@ -539,6 +578,7 @@ function FormSubmitComponent({
   formName?: string | null;
   formDescription?: string;
   settings?: FormBuilderSettings;
+  initialPageId?: string;
   previewMode?: boolean;
   onSubmit: (formUrl: string, values: FormSubmissionValues) => Promise<unknown>;
   registry?: FormElementsRegistry;
@@ -552,6 +592,7 @@ function FormSubmitComponent({
         formName={formName}
         formDescription={formDescription}
         settings={settings}
+        initialPageId={initialPageId}
         previewMode={previewMode}
         onSubmit={onSubmit}
       />
