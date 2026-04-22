@@ -144,10 +144,16 @@ export default function DesignerContextProvider({
   };
 
   const removeElement = (id: string) => {
+    setSelectedElement((currentSelectedElement) =>
+      currentSelectedElement?.id === id ? null : currentSelectedElement,
+    );
     setElements((prev) => prev.filter((el) => el.id !== id));
   };
 
   const updateElement = (id: string, element: FormElementInstance) => {
+    setSelectedElement((currentSelectedElement) =>
+      currentSelectedElement?.id === id ? element : currentSelectedElement,
+    );
     setElements((prev) => {
       const newElements = [...prev];
       const index = newElements.findIndex((el) => el.id === id);

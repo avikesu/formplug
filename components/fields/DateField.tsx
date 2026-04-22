@@ -6,7 +6,7 @@ import {
   FormElementInstance,
   SubmitFunction,
 } from "../FormElements";
-import { MdTextFields } from "react-icons/md";
+import { MdDateRange } from "react-icons/md";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import z from "zod";
@@ -39,7 +39,7 @@ import ElementLayoutSection from "../ElementLayoutSection";
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
 
-type TextFieldProperties = {
+type DateFieldProperties = {
   label: string;
   helpertext: string;
   placeholder: string;
@@ -51,20 +51,22 @@ type TextFieldProperties = {
   alignment: Alignment;
   indent: number;
   required: boolean;
+  useCurrentDate: boolean;
 };
 
-const properties: TextFieldProperties = {
-  label: "Text Field",
-  helpertext: "Helper text",
-  placeholder: "Enter text",
+const properties: DateFieldProperties = {
+  label: "Date Field",
+  helpertext: "Records the browser's current date.",
+  placeholder: "Select a date",
   visible: true,
-  readOnly: false,
+  readOnly: true,
   showTitle: true,
   showDescription: true,
   collapseState: "expanded",
   alignment: "left",
   indent: 0,
   required: false,
+  useCurrentDate: true,
 };
 
 const propertiesSchema = z.object({
@@ -79,6 +81,7 @@ const propertiesSchema = z.object({
   alignment: z.enum(["left", "center", "right"]),
   indent: z.number().int().min(0).max(3),
   required: z.boolean(),
+  useCurrentDate: z.boolean(),
 });
 
 const alignmentClassMap: Record<Alignment, string> = {
@@ -94,11 +97,11 @@ const indentClassMap: Record<number, string> = {
   3: "pl-12",
 };
 
-function getProperties(source: Record<string, unknown>): TextFieldProperties {
+function getProperties(source: Record<string, unknown>): DateFieldProperties {
   return {
     ...properties,
     ...source,
-  } as TextFieldProperties;
+  } as DateFieldProperties;
 }
 
 function getWrapperClassName(alignment: Alignment, indent: number) {
@@ -109,8 +112,16 @@ function getWrapperClassName(alignment: Alignment, indent: number) {
   );
 }
 
-const type: ElementsType = "TextField";
-export const TextFieldFormElement: FormElement = {
+function getCurrentBrowserDate() {
+  const now = new Date();
+  const offsetMilliseconds = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMilliseconds)
+    .toISOString()
+    .slice(0, 10);
+}
+
+const type: ElementsType = "DateField";
+export const DateFieldFormElement: FormElement = {
   type,
   construct: (id: string) => ({
     id,
@@ -118,8 +129,8 @@ export const TextFieldFormElement: FormElement = {
     properties,
   }),
   designerBtnElement: {
-    icon: MdTextFields,
-    label: "Text Field",
+    icon: MdDateRange,
+    label: "Date Field",
   },
   designerComponent: DesignerComponent,
   formComponent: FormComponent,
@@ -133,7 +144,6 @@ export const TextFieldFormElement: FormElement = {
 
     if (
       !normalizedProperties.visible ||
-      normalizedProperties.readOnly ||
       normalizedProperties.collapseState === "collapsed" ||
       normalizedProperties.collapseState === "locked"
     ) {
@@ -149,7 +159,7 @@ export const TextFieldFormElement: FormElement = {
 };
 
 type CustomInstance = FormElementInstance & {
-  properties: TextFieldProperties;
+  properties: DateFieldProperties;
 };
 
 function DesignerComponent({
@@ -170,6 +180,7 @@ function DesignerComponent({
     collapseState,
     alignment,
     indent,
+    useCurrentDate,
   } = getProperties(instance.properties);
 
   if (!visible) {
@@ -188,7 +199,9 @@ function DesignerComponent({
         <Input
           readOnly
           disabled={readOnly || collapseState === "locked"}
+          type="date"
           placeholder={placeholder}
+          value={useCurrentDate ? getCurrentBrowserDate() : ""}
           className={alignmentClassMap[alignment]}
         />
       )}
@@ -218,13 +231,7 @@ function FormComponent({
   defaultValue?: string;
 }) {
   const instance = elementInstance as CustomInstance;
-  const [value, setValue] = useState(defaultValue || "");
   const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setError(isInvalid === true);
-  }, [isInvalid]);
-
   const {
     label,
     required,
@@ -237,7 +244,25 @@ function FormComponent({
     collapseState,
     alignment,
     indent,
+    useCurrentDate,
   } = getProperties(instance.properties);
+  const [value, setValue] = useState(
+    defaultValue || (useCurrentDate ? getCurrentBrowserDate() : ""),
+  );
+
+  useEffect(() => {
+    setError(isInvalid === true);
+  }, [isInvalid]);
+
+  useEffect(() => {
+    const nextValue =
+      defaultValue || (useCurrentDate ? getCurrentBrowserDate() : "");
+    setValue(nextValue);
+
+    if (submitValue && useCurrentDate && nextValue.length > 0) {
+      submitValue(elementInstance.id, nextValue);
+    }
+  }, [defaultValue, elementInstance.id, submitValue, useCurrentDate]);
 
   if (!visible) {
     return null;
@@ -247,10 +272,7 @@ function FormComponent({
     <div className={getWrapperClassName(alignment, indent)}>
       {showTitle && (
         <Label
-          className={cn(
-            alignmentClassMap[alignment],
-            error && "text-red-500",
-          )}
+          className={cn(alignmentClassMap[alignment], error && "text-red-500")}
         >
           {label}
           {required ? "*" : ""}
@@ -258,6 +280,7 @@ function FormComponent({
       )}
       {collapseState !== "collapsed" && (
         <Input
+          type="date"
           className={cn(
             alignmentClassMap[alignment],
             error && "border-red-500",
@@ -265,19 +288,19 @@ function FormComponent({
           placeholder={placeholder}
           readOnly={readOnly}
           disabled={collapseState === "locked"}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={(e) => {
+          onChange={(event) => setValue(event.target.value)}
+          onBlur={(event) => {
             if (!submitValue || readOnly || collapseState === "locked") {
               return;
             }
 
-            const valid = TextFieldFormElement.validate(
+            const valid = DateFieldFormElement.validate(
               elementInstance,
-              e.target.value,
+              event.target.value,
             );
             setError(!valid);
             if (!valid) return;
-            submitValue(elementInstance.id, e.target.value);
+            submitValue(elementInstance.id, event.target.value);
           }}
           value={value}
         />
@@ -297,7 +320,8 @@ function FormComponent({
   );
 }
 
-type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+type PropertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+
 function PropertiesComponent({
   elementInstance,
 }: {
@@ -305,7 +329,7 @@ function PropertiesComponent({
 }) {
   const instance = elementInstance as CustomInstance;
   const { updateElement } = useDesigner();
-  const form = useForm<propertiesFormSchemaType>({
+  const form = useForm<PropertiesFormSchemaType>({
     resolver: zodResolver(propertiesSchema),
     mode: "onBlur",
     defaultValues: getProperties(instance.properties),
@@ -315,36 +339,12 @@ function PropertiesComponent({
     form.reset(getProperties(instance.properties));
   }, [instance, form]);
 
-  function applyChanges(values: propertiesFormSchemaType) {
-    const {
-      label,
-      helpertext,
-      placeholder,
-      visible,
-      readOnly,
-      showTitle,
-      showDescription,
-      collapseState,
-      alignment,
-      indent,
-      required,
-    } = values;
-
+  function applyChanges(values: PropertiesFormSchemaType) {
     updateElement(instance.id, {
       ...instance,
       properties: {
         ...instance.properties,
-        label,
-        helpertext,
-        placeholder,
-        visible,
-        readOnly,
-        showTitle,
-        showDescription,
-        collapseState,
-        alignment,
-        indent,
-        required,
+        ...values,
       },
     });
   }
@@ -353,8 +353,8 @@ function PropertiesComponent({
     <Form {...form}>
       <form
         onBlur={form.handleSubmit(applyChanges)}
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
         }}
         className="space-y-4"
       >
@@ -365,7 +365,10 @@ function PropertiesComponent({
             <TabsTrigger value="condition">Condition</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="general"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="label"
@@ -375,12 +378,16 @@ function PropertiesComponent({
                   <FormControl>
                     <Input
                       {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed above the text field.</FormDescription>
+                  <FormDescription>
+                    Displayed above the date field.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -396,14 +403,19 @@ function PropertiesComponent({
                     <Textarea
                       {...field}
                       rows={3}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                          e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          (event.ctrlKey || event.metaKey)
+                        ) {
+                          event.currentTarget.blur();
                         }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed below the text field.</FormDescription>
+                  <FormDescription>
+                    Displayed below the date field.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -418,12 +430,39 @@ function PropertiesComponent({
                   <FormControl>
                     <Input
                       {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed inside the input when it is empty.</FormDescription>
+                  <FormDescription>
+                    Shown when the field is not auto-filled.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="useCurrentDate"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Use current browser date</FormLabel>
+                    <FormDescription>
+                      Automatically capture the visitor's current local date in
+                      the browser.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -439,7 +478,10 @@ function PropertiesComponent({
                     <FormDescription>Show or hide the field.</FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -453,10 +495,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Required</FormLabel>
-                    <FormDescription>Require input before submission.</FormDescription>
+                    <FormDescription>
+                      Require a date before the form can be submitted.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -470,10 +517,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Read-only</FormLabel>
-                    <FormDescription>Display the field without allowing edits.</FormDescription>
+                    <FormDescription>
+                      Display the date without allowing edits.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -487,10 +539,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show title</FormLabel>
-                    <FormDescription>Render the title above the field.</FormDescription>
+                    <FormDescription>
+                      Render the title above the field.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -504,10 +561,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show description</FormLabel>
-                    <FormDescription>Render the description below the field.</FormDescription>
+                    <FormDescription>
+                      Render the description below the field.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -515,7 +577,10 @@ function PropertiesComponent({
             />
           </TabsContent>
 
-          <TabsContent value="layout" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="layout"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="collapseState"
@@ -534,7 +599,9 @@ function PropertiesComponent({
                       <SelectItem value="expanded">Expanded</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Control whether the field is shown, hidden, or locked.</FormDescription>
+                  <FormDescription>
+                    Control whether the field is shown, hidden, or locked.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -558,7 +625,9 @@ function PropertiesComponent({
                       <SelectItem value="right">Right</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Align the title, input text, and description.</FormDescription>
+                  <FormDescription>
+                    Align the title, date input, and description.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -586,11 +655,14 @@ function PropertiesComponent({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Offset the field from the left edge of the layout.</FormDescription>
+                  <FormDescription>
+                    Offset the field from the left edge of the layout.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <ElementLayoutSection element={elementInstance} />
           </TabsContent>
 

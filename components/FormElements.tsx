@@ -1,4 +1,5 @@
 import { CheckboxFieldFormElement } from "./fields/CheckboxField";
+import { DateFieldFormElement } from "./fields/DateField";
 import { ImageFieldFormElement } from "./fields/ImageField";
 import { NumberFieldFormElement } from "./fields/NumberField";
 import { ParagraphFieldFormElement } from "./fields/ParagraphField";
@@ -11,6 +12,7 @@ import { TitleFieldFormElement } from "./fields/TitleField";
 
 export type DefaultElementsType =
   | "CheckboxField"
+  | "DateField"
   | "ImageField"
   | "TextField"
   | "TitleField"
@@ -66,6 +68,7 @@ export type FormElementSidebarGroup = {
 
 const defaultFormElements: FormElementsRegistry = {
   CheckboxField: CheckboxFieldFormElement,
+  DateField: DateFieldFormElement,
   ImageField: ImageFieldFormElement,
   TextField: TextFieldFormElement,
   TitleField: TitleFieldFormElement,
@@ -94,7 +97,13 @@ export const defaultFormElementSidebarGroups: FormElementSidebarGroup[] = [
   },
   {
     label: "Form elements",
-    elementTypes: ["TextField", "NumberField", "TextAreaField", "CheckboxField"],
+    elementTypes: [
+      "TextField",
+      "DateField",
+      "NumberField",
+      "TextAreaField",
+      "CheckboxField",
+    ],
   },
 ];
 

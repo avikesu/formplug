@@ -33,6 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { cn } from "@/lib/utils";
 import { MdImage } from "react-icons/md";
+import ElementLayoutSection from "../ElementLayoutSection";
 
 type ImageAlignment = "left" | "center" | "right";
 type ImageFit = "contain" | "cover";
@@ -423,6 +424,7 @@ function PropertiesComponent({
                 </FormItem>
               )}
             />
+            <ElementLayoutSection element={elementInstance} />
           </TabsContent>
 
           <TabsContent value="condition" className="rounded-xl border p-4">

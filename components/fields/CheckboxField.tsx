@@ -35,6 +35,7 @@ import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { cn } from "@/lib/utils";
 import { MdCheckBox } from "react-icons/md";
+import ElementLayoutSection from "../ElementLayoutSection";
 
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
@@ -193,9 +194,17 @@ function DesignerComponent({
             rowAlignmentClassMap[alignment],
           )}
         >
-          <Checkbox checked={defaultChecked} disabled={readOnly || collapseState === "locked"} />
+          <Checkbox
+            checked={defaultChecked}
+            disabled={readOnly || collapseState === "locked"}
+          />
           {(showTitle || showDescription) && (
-            <div className={cn("flex flex-col gap-1", contentAlignmentClassMap[alignment])}>
+            <div
+              className={cn(
+                "flex flex-col gap-1",
+                contentAlignmentClassMap[alignment],
+              )}
+            >
               {showTitle && (
                 <Label className="text-sm font-medium">
                   {label}
@@ -203,7 +212,9 @@ function DesignerComponent({
                 </Label>
               )}
               {showDescription && helpertext && (
-                <p className="text-[0.8rem] text-muted-foreground">{helpertext}</p>
+                <p className="text-[0.8rem] text-muted-foreground">
+                  {helpertext}
+                </p>
               )}
             </div>
           )}
@@ -286,9 +297,16 @@ function FormComponent({
             }}
           />
           {(showTitle || showDescription) && (
-            <div className={cn("flex flex-col gap-1", contentAlignmentClassMap[alignment])}>
+            <div
+              className={cn(
+                "flex flex-col gap-1",
+                contentAlignmentClassMap[alignment],
+              )}
+            >
               {showTitle && (
-                <Label className={cn("text-sm font-medium", error && "text-red-500")}>
+                <Label
+                  className={cn("text-sm font-medium", error && "text-red-500")}
+                >
                   {label}
                   {required ? " *" : ""}
                 </Label>
@@ -374,7 +392,9 @@ function PropertiesComponent({
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed next to the checkbox.</FormDescription>
+                  <FormDescription>
+                    Displayed next to the checkbox.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -400,7 +420,9 @@ function PropertiesComponent({
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed below the checkbox title.</FormDescription>
+                  <FormDescription>
+                    Displayed below the checkbox title.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -413,10 +435,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Default checked</FormLabel>
-                    <FormDescription>Start the checkbox in the checked state.</FormDescription>
+                    <FormDescription>
+                      Start the checkbox in the checked state.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -433,7 +460,10 @@ function PropertiesComponent({
                     <FormDescription>Show or hide the field.</FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -447,10 +477,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Required</FormLabel>
-                    <FormDescription>Require the checkbox to be checked before submit.</FormDescription>
+                    <FormDescription>
+                      Require the checkbox to be checked before submit.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -464,10 +499,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Read-only</FormLabel>
-                    <FormDescription>Show the field without allowing changes.</FormDescription>
+                    <FormDescription>
+                      Show the field without allowing changes.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -481,10 +521,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show title</FormLabel>
-                    <FormDescription>Render the checkbox title next to the box.</FormDescription>
+                    <FormDescription>
+                      Render the checkbox title next to the box.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -498,10 +543,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show description</FormLabel>
-                    <FormDescription>Render the helper text below the checkbox title.</FormDescription>
+                    <FormDescription>
+                      Render the helper text below the checkbox title.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -531,7 +581,9 @@ function PropertiesComponent({
                       <SelectItem value="expanded">Expanded</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Control whether the checkbox is visible or locked.</FormDescription>
+                  <FormDescription>
+                    Control whether the checkbox is visible or locked.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -555,7 +607,9 @@ function PropertiesComponent({
                       <SelectItem value="right">Right</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Align the checkbox row inside the form layout.</FormDescription>
+                  <FormDescription>
+                    Align the checkbox row inside the form layout.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -583,11 +637,14 @@ function PropertiesComponent({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Offset the checkbox row inside the page layout.</FormDescription>
+                  <FormDescription>
+                    Offset the checkbox row inside the page layout.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <ElementLayoutSection element={elementInstance} />
           </TabsContent>
 
           <TabsContent value="condition" className="rounded-xl border p-4">
