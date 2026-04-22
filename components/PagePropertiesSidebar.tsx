@@ -290,22 +290,6 @@ function PagePropertiesSidebar() {
                 }
               />
               <ColorSettingField
-                label="Field card color"
-                value={activePage.questionBackgroundColor}
-                fallbackColor="#ffffff"
-                onChange={(value) =>
-                  updateCurrentPage({ questionBackgroundColor: value })
-                }
-              />
-              <ColorSettingField
-                label="Field card border color"
-                value={activePage.questionBorderColor}
-                fallbackColor="#e2e8f0"
-                onChange={(value) =>
-                  updateCurrentPage({ questionBorderColor: value })
-                }
-              />
-              <ColorSettingField
                 label="Heading color"
                 value={activePage.headingColor}
                 fallbackColor="#0f172a"

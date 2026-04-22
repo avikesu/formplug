@@ -49,8 +49,6 @@ export type FormPageDocument = {
   pageBackgroundColor: string;
   pageHeaderBackgroundColor: string;
   pageBorderColor: string;
-  questionBackgroundColor: string;
-  questionBorderColor: string;
   headingColor: string;
   bodyTextColor: string;
   surfaceRadius: FormPageSurfaceRadius;
@@ -84,8 +82,6 @@ export const defaultFormPageProperties: Omit<FormPageDocument, "id" | "name"> =
     pageBackgroundColor: "",
     pageHeaderBackgroundColor: "",
     pageBorderColor: "",
-    questionBackgroundColor: "",
-    questionBorderColor: "",
     headingColor: "",
     bodyTextColor: "",
     surfaceRadius: "2xl",
@@ -247,14 +243,6 @@ export function normalizeFormPageDocument(
       typeof candidate.pageBorderColor === "string"
         ? candidate.pageBorderColor
         : fallbackPage.pageBorderColor,
-    questionBackgroundColor:
-      typeof candidate.questionBackgroundColor === "string"
-        ? candidate.questionBackgroundColor
-        : fallbackPage.questionBackgroundColor,
-    questionBorderColor:
-      typeof candidate.questionBorderColor === "string"
-        ? candidate.questionBorderColor
-        : fallbackPage.questionBorderColor,
     headingColor:
       typeof candidate.headingColor === "string"
         ? candidate.headingColor

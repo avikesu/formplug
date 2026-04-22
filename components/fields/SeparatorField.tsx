@@ -45,7 +45,7 @@ function FormComponent({
 }: {
   elementInstance: FormElementInstance;
 }) {
-  return <Separator />;
+  return <Separator className="bg-border/90" />;
 }
 
 function PropertiesComponent({

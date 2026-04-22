@@ -75,7 +75,7 @@ function FormComponent({
   const instance = elementInstance as CustomInstance;
 
   const { text } = instance.properties;
-  return <p>{text}</p>;
+  return <p className="w-full whitespace-pre-wrap text-base leading-7 text-foreground">{text}</p>;
 }
 
 type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;

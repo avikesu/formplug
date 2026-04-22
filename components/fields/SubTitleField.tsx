@@ -75,7 +75,7 @@ function FormComponent({
   const instance = elementInstance as CustomInstance;
 
   const { title } = instance.properties;
-  return <p className="text-lg">{title}</p>;
+  return <p className="text-lg font-medium text-foreground/90">{title}</p>;
 }
 
 type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;

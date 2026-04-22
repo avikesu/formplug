@@ -27,18 +27,22 @@ import {
   defaultFormBuilderSettings,
   FormBuilderSettings,
 } from "@/lib/form-builder-settings";
-import {
-  FormPageDocument,
-  pageSurfaceRadiusClassMap,
-  pageSurfaceShadowClassMap,
-  sanitizeCssValue,
-} from "@/lib/form-pages";
+import { FormPageDocument, sanitizeCssValue } from "@/lib/form-pages";
 import {
   getElementContainerClassName,
   getElementInnerSpacingClassName,
   getElementLayout,
   sortElementsByLayout,
 } from "@/lib/form-element-layout";
+
+const layoutOnlyElementTypes = new Set([
+  "TitleField",
+  "SubTitleField",
+  "ParagraphField",
+  "SeparatorField",
+  "SpacerField",
+  "ImageField",
+]);
 
 type FormSubmitContentProps = {
   formUrl: string;
@@ -94,10 +98,10 @@ function FormSubmitContent({
     settings.alignment === "left" ? "ml-0 mr-auto" : "mx-auto";
   const surfaceClass =
     settings.surfaceStyle === "soft"
-      ? "border-sky-100 bg-sky-50/70 shadow-none"
+      ? "border-border bg-card/80 shadow-none backdrop-blur-sm"
       : settings.surfaceStyle === "outline"
-        ? "border-slate-300 bg-white shadow-none"
-        : "border-sky-100 bg-white shadow-[0_30px_120px_-40px_rgba(14,165,233,0.45)]";
+        ? "border-border bg-card shadow-none"
+        : "border-border bg-card shadow-sm";
   const pageWidthCss = useMemo(() => {
     if (!currentPage) {
       return ".page-layout-default { width: auto; }";
@@ -111,12 +115,7 @@ function FormSubmitContent({
       }
     `;
   }, [currentPage, pageClassName]);
-  const pageRadiusClass = currentPage
-    ? pageSurfaceRadiusClassMap[currentPage.surfaceRadius]
-    : pageSurfaceRadiusClassMap["2xl"];
-  const pageShadowClass = currentPage
-    ? pageSurfaceShadowClassMap[currentPage.surfaceShadow]
-    : pageSurfaceShadowClassMap.soft;
+  const hasFieldCardAppearance = false;
   const pageAppearanceCss = useMemo(() => {
     if (!currentPage) {
       return "";
@@ -127,7 +126,7 @@ function FormSubmitContent({
     if (currentPage.canvasBackgroundColor.trim()) {
       cssRules.push(`
         .${pageClassName}-canvas {
-          background-color: ${sanitizeCssValue(currentPage.canvasBackgroundColor, "#f8fafc")};
+          background-color: ${sanitizeCssValue(currentPage.canvasBackgroundColor, "var(--muted)")};
         }
       `);
     }
@@ -139,7 +138,7 @@ function FormSubmitContent({
     ) {
       cssRules.push(`
         .${pageClassName}.form-page-surface {
-          ${currentPage.bodyTextColor.trim() ? `color: ${sanitizeCssValue(currentPage.bodyTextColor, "#475569")};` : ""}
+          ${currentPage.bodyTextColor.trim() ? `color: ${sanitizeCssValue(currentPage.bodyTextColor, "var(--foreground)")};` : ""}
         }
       `);
     }
@@ -150,7 +149,7 @@ function FormSubmitContent({
     ) {
       cssRules.push(`
         .${pageClassName}-content {
-          ${currentPage.pageBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageBackgroundColor, "#ffffff")};` : ""}
+          ${currentPage.pageBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageBackgroundColor, "var(--card)")};` : ""}
           ${currentPage.contentPadding.trim() ? `padding: ${sanitizeCssValue(currentPage.contentPadding, "1.5rem")};` : ""}
         }
       `);
@@ -162,8 +161,8 @@ function FormSubmitContent({
     ) {
       cssRules.push(`
         .${pageClassName}-header {
-          ${currentPage.pageHeaderBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageHeaderBackgroundColor, "#ffffff")};` : ""}
-          ${currentPage.pageBorderColor.trim() ? `border-color: ${sanitizeCssValue(currentPage.pageBorderColor, "#e2e8f0")};` : ""}
+          ${currentPage.pageHeaderBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.pageHeaderBackgroundColor, "var(--card)")};` : ""}
+          ${currentPage.pageBorderColor.trim() ? `border-color: ${sanitizeCssValue(currentPage.pageBorderColor, "var(--border)")};` : ""}
         }
       `);
     }
@@ -173,7 +172,7 @@ function FormSubmitContent({
         .${pageClassName}-eyebrow,
         .${pageClassName}-body,
         .${pageClassName}-badge {
-          color: ${sanitizeCssValue(currentPage.bodyTextColor, "#475569")};
+          color: ${sanitizeCssValue(currentPage.bodyTextColor, "var(--muted-foreground)")};
         }
       `);
     }
@@ -181,7 +180,7 @@ function FormSubmitContent({
     if (currentPage.headingColor.trim()) {
       cssRules.push(`
         .${pageClassName}-heading {
-          color: ${sanitizeCssValue(currentPage.headingColor, "#0f172a")};
+          color: ${sanitizeCssValue(currentPage.headingColor, "var(--foreground)")};
         }
       `);
     }
@@ -189,29 +188,17 @@ function FormSubmitContent({
     if (currentPage.pageBorderColor.trim()) {
       cssRules.push(`
         .${pageClassName}-badge {
-          border-color: ${sanitizeCssValue(currentPage.pageBorderColor, "#e2e8f0")};
+          border-color: ${sanitizeCssValue(currentPage.pageBorderColor, "var(--border)")};
         }
       `);
     }
 
-    if (
-      currentPage.questionBackgroundColor.trim() ||
-      currentPage.questionBorderColor.trim() ||
-      currentPage.bodyTextColor.trim()
-    ) {
-      cssRules.push(`
-        .${pageClassName}-question {
-          ${currentPage.questionBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(currentPage.questionBackgroundColor, "#ffffff")};` : ""}
-          ${currentPage.questionBorderColor.trim() ? `border-color: ${sanitizeCssValue(currentPage.questionBorderColor, "#e2e8f0")};` : ""}
-          ${currentPage.bodyTextColor.trim() ? `color: ${sanitizeCssValue(currentPage.bodyTextColor, "#475569")};` : ""}
-        }
-      `);
-    }
+    // Remove questionBackgroundColor and questionBorderColor support
 
     cssRules.push(`
       .${pageClassName}-question.form-page-question-error {
-        background-color: rgba(254, 226, 226, 0.55);
         border-color: rgb(252, 165, 165);
+        box-shadow: 0 0 0 1px rgba(252, 165, 165, 0.55);
       }
     `);
 
@@ -313,25 +300,25 @@ function FormSubmitContent({
 
   if (submitted) {
     return (
-      <div className="flex min-h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.16),transparent_30%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.92))] p-6 md:p-10">
+      <div className="flex min-h-full w-full justify-center bg-muted/40 p-6 text-foreground md:p-10">
         <div
           className={cn(
-            "w-full overflow-hidden rounded-4xl border",
+            "w-full overflow-hidden rounded-xl border",
             widthClass,
             surfaceClass,
           )}
         >
-          <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-cyan-50 to-white px-8 py-8">
-            <div className="flex items-center gap-3 text-sky-700">
+          <div className="border-b border-border bg-card px-8 py-8">
+            <div className="flex items-center gap-3 text-emerald-600">
               <CheckCircle2 className="size-6" />
-              <span className="text-sm font-semibold uppercase tracking-[0.24em]">
+              <span className="text-sm font-semibold uppercase tracking-wide">
                 Submission complete
               </span>
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
+            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
               Thank you. Your response has been recorded.
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               Your form has been submitted successfully.
             </p>
           </div>
@@ -341,42 +328,42 @@ function FormSubmitContent({
   }
 
   return (
-    <div className="flex min-h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.16),transparent_30%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(241,245,249,0.92))] p-6 md:p-10">
+    <div className="flex min-h-full w-full justify-center bg-muted/40 p-6 text-foreground md:p-10">
       <style>{pageWidthCss}</style>
       <style>{pageAppearanceCss}</style>
       <div
         className={cn(
-          "w-full overflow-hidden rounded-4xl border",
+          "w-full overflow-hidden rounded-xl border",
           widthClass,
           alignmentClass,
           surfaceClass,
         )}
       >
         {settings.showHeader && (
-          <div className="border-b border-sky-100 bg-linear-to-r from-sky-50 via-cyan-50 to-white px-6 py-8 md:px-10">
+          <div className="border-b border-border px-6 py-6 md:px-10">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Badge
                 variant="secondary"
-                className="rounded-full border border-sky-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-700"
+                className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
               >
                 <Sparkles className="mr-1 size-3.5" />
                 {previewMode ? "Preview" : "Live form"}
               </Badge>
-              <span className="text-xs uppercase tracking-[0.24em] text-slate-400">
+              <span className="text-xs tracking-wide text-muted-foreground/80">
                 Formplug
               </span>
             </div>
-            <div className="mt-6 space-y-3">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+            <div className="mt-5 space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                 {formName?.trim() || "Untitled form"}
               </h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                 {formDescription?.trim() ||
                   "Complete the form below and submit your response when you are ready."}
               </p>
             </div>
             {previewMode && (
-              <p className="mt-4 text-sm text-sky-700">
+              <p className="mt-3 text-xs text-muted-foreground/80">
                 This preview uses the same renderer as the public submit page.
               </p>
             )}
@@ -385,34 +372,25 @@ function FormSubmitContent({
 
         <div
           className={cn(
-            "bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(248,250,252,0.96))] px-6 py-8 md:px-10 md:py-10",
+            "px-6 py-6 md:px-10 md:py-8",
             `${pageClassName}-canvas`,
           )}
         >
           <div
             className={cn(
-              "form-page-surface flex w-full flex-col gap-6",
+              "form-page-surface flex w-full flex-col gap-5",
               pageClassName,
               contentWidthClass,
               alignmentClass,
-              pageRadiusClass,
-              pageShadowClass,
             )}
           >
             {currentPage && (currentPage.title || currentPage.description) && (
-              <div
-                className={cn(
-                  "border border-slate-200/80 bg-white/85 p-5",
-                  `${pageClassName}-header`,
-                  pageRadiusClass,
-                  pageShadowClass,
-                )}
-              >
+              <div className={cn("pb-4", `${pageClassName}-header`)}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p
                       className={cn(
-                        "text-xs font-medium uppercase tracking-[0.24em]",
+                        "text-xs font-medium uppercase tracking-wide text-muted-foreground/80",
                         `${pageClassName}-eyebrow`,
                       )}
                     >
@@ -421,7 +399,7 @@ function FormSubmitContent({
                     {currentPage.title && (
                       <h2
                         className={cn(
-                          "mt-2 text-2xl font-semibold text-slate-900",
+                          "mt-1 text-lg font-semibold text-foreground",
                           `${pageClassName}-heading`,
                         )}
                       >
@@ -431,7 +409,7 @@ function FormSubmitContent({
                     {currentPage.description && (
                       <p
                         className={cn(
-                          "mt-2 text-sm leading-6 text-slate-600",
+                          "mt-1 text-sm leading-6 text-muted-foreground",
                           `${pageClassName}-body`,
                         )}
                       >
@@ -439,32 +417,30 @@ function FormSubmitContent({
                       </p>
                     )}
                   </div>
-                  <span
-                    className={cn(
-                      "rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500",
-                      `${pageClassName}-badge`,
-                    )}
-                  >
-                    Page {currentPageIndex + 1} of{" "}
-                    {Math.max(visiblePages.length, 1)}
-                  </span>
+                  {visiblePages.length > 1 && (
+                    <span
+                      className={cn(
+                        "shrink-0 text-xs font-medium text-muted-foreground/80",
+                        `${pageClassName}-badge`,
+                      )}
+                    >
+                      {currentPageIndex + 1} / {visiblePages.length}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
             <div
-              className={cn(
-                "flex flex-col gap-6 p-4",
-                `${pageClassName}-content`,
-              )}
+              className={cn("flex flex-col gap-4", `${pageClassName}-content`)}
             >
               {!currentPage || currentPage.elements.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 px-6 py-14 text-center text-sm text-slate-500">
+                <div className="rounded-lg border border-dashed border-border px-6 py-14 text-center text-sm text-muted-foreground">
                   This page has no fields yet.
                 </div>
               ) : (
                 <div
                   className={cn(
-                    "grid grid-cols-12 gap-6",
+                    "grid grid-cols-12 gap-x-4 gap-y-5",
                     currentPage.readOnly && "pointer-events-none opacity-80",
                   )}
                 >
@@ -474,38 +450,56 @@ function FormSubmitContent({
                       element.type,
                     ).formComponent;
                     const layout = getElementLayout(element.properties);
+                    const isLayoutOnlyElement = layoutOnlyElementTypes.has(
+                      element.type,
+                    );
 
                     return (
                       <div
                         key={element.id}
                         className={cn(
-                          "border border-slate-200/80 bg-white/90 p-5 transition-colors",
                           `${pageClassName}-question`,
-                          formErrors[element.id] && "form-page-question-error",
                           getElementContainerClassName(layout),
-                          pageRadiusClass,
-                          pageShadowClass,
+                          isLayoutOnlyElement
+                            ? "p-0"
+                            : "rounded-xl border border-border bg-card p-0 text-foreground transition-colors",
+                          !isLayoutOnlyElement &&
+                            formErrors[element.id] &&
+                            "border-red-300 bg-red-50/40 form-page-question-error dark:bg-red-950/20",
                         )}
                       >
-                        <div
-                          className={getElementInnerSpacingClassName(layout)}
-                        >
+                        {isLayoutOnlyElement ? (
                           <FormElement
                             elementInstance={element}
                             submitValue={submitValue}
                             isInvalid={formErrors[element.id]}
                             defaultValue={formValues[element.id]}
                           />
-                        </div>
+                        ) : (
+                          <div
+                            className={cn(
+                              "rounded-[calc(var(--radius)-2px)] bg-muted/70 p-4",
+                              getElementInnerSpacingClassName(layout),
+                            )}
+                          >
+                            <FormElement
+                              elementInstance={element}
+                              submitValue={submitValue}
+                              isInvalid={formErrors[element.id]}
+                              defaultValue={formValues[element.id]}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-5">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() =>
                     setCurrentPageIndex((currentIndex) =>
                       Math.max(currentIndex - 1, 0),
@@ -518,7 +512,7 @@ function FormSubmitContent({
 
                 {currentPageIndex < visiblePages.length - 1 ? (
                   <Button
-                    className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
+                    className="rounded-lg bg-primary px-6 font-medium text-primary-foreground hover:bg-primary/90"
                     onClick={() =>
                       setCurrentPageIndex((currentIndex) =>
                         Math.min(currentIndex + 1, visiblePages.length - 1),
@@ -530,7 +524,7 @@ function FormSubmitContent({
                   </Button>
                 ) : (
                   <Button
-                    className="h-12 rounded-xl bg-slate-950 text-base font-medium text-white shadow-[0_20px_50px_-25px_rgba(15,23,42,0.8)] hover:bg-slate-800"
+                    className="rounded-lg bg-primary px-6 font-medium text-primary-foreground hover:bg-primary/90"
                     onClick={() => {
                       startTransition(() => {
                         submitForm();
@@ -545,7 +539,7 @@ function FormSubmitContent({
                         ) : (
                           <HiCursorClick className="mr-2" />
                         )}
-                        {previewMode ? "Validate preview" : "Submit form"}
+                        {previewMode ? "Validate preview" : "Submit"}
                       </>
                     )}
                     {pending && <ImSpinner2 className="animate-spin" />}

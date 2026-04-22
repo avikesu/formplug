@@ -107,15 +107,6 @@ function Designer({ formName }: { formName: string | null }) {
               }
             `
           : "",
-        activePage.questionBackgroundColor.trim() ||
-        activePage.questionBorderColor.trim()
-          ? `
-              .${pageClassName}-question {
-                ${activePage.questionBackgroundColor.trim() ? `background-color: ${sanitizeCssValue(activePage.questionBackgroundColor, "#ffffff")};` : ""}
-                ${activePage.questionBorderColor.trim() ? `border-color: ${sanitizeCssValue(activePage.questionBorderColor, "#e2e8f0")};` : ""}
-              }
-            `
-          : "",
       ]
         .filter(Boolean)
         .join("\n")

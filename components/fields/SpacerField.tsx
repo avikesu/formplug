@@ -80,7 +80,7 @@ function FormComponent({
   return (
     <div className="w-full" aria-hidden="true">
       {Array.from({ length: spacerUnits }, (_, index) => (
-        <div key={index} className="h-1" />
+        <div key={index} className="h-1 bg-transparent" />
       ))}
     </div>
   );
