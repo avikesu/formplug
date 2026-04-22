@@ -42,6 +42,21 @@ function SurveySettingsSidebar() {
           />
         </div>
 
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div>
+            <Label className="text-sm font-medium">Show page title and description</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Display the current page heading above its fields in preview and on the public submit page.
+            </p>
+          </div>
+          <Switch
+            checked={settings.showPageHeader}
+            onCheckedChange={(checked) =>
+              updateSettings({ showPageHeader: checked })
+            }
+          />
+        </div>
+
         <div className="space-y-2">
           <Label>Survey width</Label>
           <Select

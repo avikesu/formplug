@@ -72,6 +72,7 @@ function FormSubmitContent({
   const [submitted, setSubmitted] = useState(false);
   const [pending, startTransition] = useTransition();
   const visiblePages = pages.filter((page) => page.visible);
+  const hasMultiplePages = visiblePages.length > 1;
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const currentPage = visiblePages[currentPageIndex] ?? visiblePages[0] ?? null;
   const pageClassName = useMemo(
@@ -115,7 +116,6 @@ function FormSubmitContent({
       }
     `;
   }, [currentPage, pageClassName]);
-  const hasFieldCardAppearance = false;
   const pageAppearanceCss = useMemo(() => {
     if (!currentPage) {
       return "";
@@ -194,13 +194,6 @@ function FormSubmitContent({
     }
 
     // Remove questionBackgroundColor and questionBorderColor support
-
-    cssRules.push(`
-      .${pageClassName}-question.form-page-question-error {
-        border-color: rgb(252, 165, 165);
-        box-shadow: 0 0 0 1px rgba(252, 165, 165, 0.55);
-      }
-    `);
 
     return cssRules.join("\n");
   }, [currentPage, pageClassName]);
@@ -384,7 +377,9 @@ function FormSubmitContent({
               alignmentClass,
             )}
           >
-            {currentPage && (currentPage.title || currentPage.description) && (
+            {settings.showPageHeader &&
+              currentPage &&
+              (currentPage.title || currentPage.description) && (
               <div className={cn("pb-4", `${pageClassName}-header`)}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -417,7 +412,7 @@ function FormSubmitContent({
                       </p>
                     )}
                   </div>
-                  {visiblePages.length > 1 && (
+                  {hasMultiplePages && (
                     <span
                       className={cn(
                         "shrink-0 text-xs font-medium text-muted-foreground/80",
@@ -460,57 +455,44 @@ function FormSubmitContent({
                         className={cn(
                           `${pageClassName}-question`,
                           getElementContainerClassName(layout),
-                          isLayoutOnlyElement
-                            ? "p-0"
-                            : "rounded-xl border border-border bg-card p-0 text-foreground transition-colors",
-                          !isLayoutOnlyElement &&
-                            formErrors[element.id] &&
-                            "border-red-300 bg-red-50/40 form-page-question-error dark:bg-red-950/20",
+                          getElementInnerSpacingClassName(layout),
+                          "p-0 text-foreground transition-colors",
                         )}
                       >
-                        {isLayoutOnlyElement ? (
-                          <FormElement
-                            elementInstance={element}
-                            submitValue={submitValue}
-                            isInvalid={formErrors[element.id]}
-                            defaultValue={formValues[element.id]}
-                          />
-                        ) : (
-                          <div
-                            className={cn(
-                              "rounded-[calc(var(--radius)-2px)] bg-muted/70 p-4",
-                              getElementInnerSpacingClassName(layout),
-                            )}
-                          >
-                            <FormElement
-                              elementInstance={element}
-                              submitValue={submitValue}
-                              isInvalid={formErrors[element.id]}
-                              defaultValue={formValues[element.id]}
-                            />
-                          </div>
-                        )}
+                        <FormElement
+                          elementInstance={element}
+                          submitValue={submitValue}
+                          isInvalid={formErrors[element.id]}
+                          defaultValue={formValues[element.id]}
+                        />
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPageIndex((currentIndex) =>
-                      Math.max(currentIndex - 1, 0),
-                    )
-                  }
-                  disabled={currentPageIndex === 0 || pending}
-                >
-                  Previous page
-                </Button>
+              <div
+                className={cn(
+                  "mt-2 flex flex-wrap items-center gap-3 border-t border-border/70 pt-5",
+                  hasMultiplePages ? "justify-between" : "justify-end",
+                )}
+              >
+                {hasMultiplePages && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPageIndex((currentIndex) =>
+                        Math.max(currentIndex - 1, 0),
+                      )
+                    }
+                    disabled={currentPageIndex === 0 || pending}
+                  >
+                    Previous page
+                  </Button>
+                )}
 
-                {currentPageIndex < visiblePages.length - 1 ? (
+                {hasMultiplePages && currentPageIndex < visiblePages.length - 1 ? (
                   <Button
                     className="rounded-lg bg-primary px-6 font-medium text-primary-foreground hover:bg-primary/90"
                     onClick={() =>

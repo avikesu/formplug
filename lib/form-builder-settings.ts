@@ -4,6 +4,7 @@ export type FormSurfaceStyle = "soft" | "outline" | "elevated";
 
 export type FormBuilderSettings = {
   showHeader: boolean;
+  showPageHeader: boolean;
   width: FormLayoutWidth;
   alignment: FormLayoutAlignment;
   surfaceStyle: FormSurfaceStyle;
@@ -11,6 +12,7 @@ export type FormBuilderSettings = {
 
 export const defaultFormBuilderSettings: FormBuilderSettings = {
   showHeader: true,
+  showPageHeader: true,
   width: "regular",
   alignment: "center",
   surfaceStyle: "elevated",
@@ -30,6 +32,10 @@ export function normalizeFormBuilderSettings(
       typeof candidate.showHeader === "boolean"
         ? candidate.showHeader
         : defaultFormBuilderSettings.showHeader,
+    showPageHeader:
+      typeof candidate.showPageHeader === "boolean"
+        ? candidate.showPageHeader
+        : defaultFormBuilderSettings.showPageHeader,
     width:
       candidate.width === "narrow" ||
       candidate.width === "regular" ||

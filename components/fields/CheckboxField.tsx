@@ -265,6 +265,7 @@ function FormComponent({
           )}
         >
           <Checkbox
+            className={cn(error && "border-red-500")}
             checked={checked}
             disabled={collapseState === "locked"}
             onCheckedChange={(value) => {
