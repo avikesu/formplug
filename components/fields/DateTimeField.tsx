@@ -7,9 +7,13 @@ import {
   FormElementInstance,
   SubmitFunction,
 } from "../FormElements";
-import { MdTextFields } from "react-icons/md";
+import { MdOutlineMoreTime } from "react-icons/md";
+import { CalendarIcon, Clock3Icon } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Calendar } from "../ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,7 +45,7 @@ import HiddenDesignerIndicator from "../HiddenDesignerIndicator";
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
 
-type TextFieldProperties = {
+type DateTimeFieldProperties = {
   label: string;
   helpertext: string;
   placeholder: string;
@@ -53,20 +57,22 @@ type TextFieldProperties = {
   alignment: Alignment;
   indent: number;
   required: boolean;
+  useCurrentDateTime: boolean;
 };
 
-const properties: TextFieldProperties = {
-  label: "Text Field",
-  helpertext: "Helper text",
-  placeholder: "Enter text",
+const properties: DateTimeFieldProperties = {
+  label: "Date & Time Field",
+  helpertext: "Records the browser's current date and time.",
+  placeholder: "Select date and time",
   visible: true,
-  readOnly: false,
+  readOnly: true,
   showTitle: true,
   showDescription: true,
   collapseState: "expanded",
   alignment: "left",
   indent: 0,
   required: false,
+  useCurrentDateTime: true,
 };
 
 const propertiesSchema = z.object({
@@ -81,6 +87,7 @@ const propertiesSchema = z.object({
   alignment: z.enum(["left", "center", "right"]),
   indent: z.number().int().min(0).max(3),
   required: z.boolean(),
+  useCurrentDateTime: z.boolean(),
 });
 
 const alignmentClassMap: Record<Alignment, string> = {
@@ -96,11 +103,13 @@ const indentClassMap: Record<number, string> = {
   3: "pl-12",
 };
 
-function getProperties(source: Record<string, unknown>): TextFieldProperties {
+function getProperties(
+  source: Record<string, unknown>,
+): DateTimeFieldProperties {
   return {
     ...properties,
     ...source,
-  } as TextFieldProperties;
+  } as DateTimeFieldProperties;
 }
 
 function getWrapperClassName(alignment: Alignment, indent: number) {
@@ -111,8 +120,148 @@ function getWrapperClassName(alignment: Alignment, indent: number) {
   );
 }
 
-const type: ElementsType = "TextField";
-export const TextFieldFormElement: FormElement = {
+function getCurrentBrowserDateTime() {
+  const now = new Date();
+  const offsetMilliseconds = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMilliseconds)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function parseDateTimeValue(value: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return undefined;
+  }
+
+  return parsedDate;
+}
+
+function getTimeValue(value: string) {
+  if (!value || !value.includes("T")) {
+    return "";
+  }
+
+  return value.split("T")[1]?.slice(0, 5) ?? "";
+}
+
+function toLocalDateTimeValue(date: Date, timeValue: string) {
+  const normalizedTime = timeValue || "00:00";
+  const [hours, minutes] = normalizedTime.split(":").map(Number);
+
+  const nextDate = new Date(date);
+  nextDate.setHours(Number.isNaN(hours) ? 0 : hours);
+  nextDate.setMinutes(Number.isNaN(minutes) ? 0 : minutes);
+  nextDate.setSeconds(0);
+  nextDate.setMilliseconds(0);
+
+  const offsetMilliseconds = nextDate.getTimezoneOffset() * 60_000;
+  return new Date(nextDate.getTime() - offsetMilliseconds)
+    .toISOString()
+    .slice(0, 16);
+}
+
+function formatDateTimeDisplay(value: string, placeholder: string) {
+  const parsedDate = parseDateTimeValue(value);
+  if (!parsedDate) {
+    return placeholder;
+  }
+
+  return parsedDate.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function DateTimePicker({
+  value,
+  placeholder,
+  disabled,
+  readOnly,
+  invalid,
+  className,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  invalid?: boolean;
+  className?: string;
+  onChange?: (nextValue: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = parseDateTimeValue(value);
+  const timeValue = getTimeValue(value);
+  const isDisabled = disabled || readOnly;
+
+  return (
+    <Popover open={isDisabled ? false : open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isDisabled}
+          className={cn(
+            "w-full justify-between font-normal",
+            !selectedDate && "text-muted-foreground",
+            invalid && "border-red-500",
+            className,
+          )}
+        >
+          <span className="truncate">
+            {formatDateTimeDisplay(value, placeholder)}
+          </span>
+          <CalendarIcon className="ml-2 size-4 shrink-0 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <div className="flex flex-col">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={(nextDate) => {
+              if (!nextDate) {
+                return;
+              }
+
+              onChange?.(toLocalDateTimeValue(nextDate, timeValue));
+            }}
+            initialFocus
+            captionLayout="dropdown"
+          />
+          <div className="flex items-center gap-3 border-t p-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock3Icon className="size-4" />
+              <span>Time</span>
+            </div>
+            <Input
+              type="time"
+              step="60"
+              value={timeValue}
+              onChange={(event) => {
+                const nextTime = event.target.value;
+                const baseDate = selectedDate ?? new Date();
+                onChange?.(toLocalDateTimeValue(baseDate, nextTime));
+              }}
+              className="h-9"
+            />
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+const type: ElementsType = "DateTimeField";
+export const DateTimeFieldFormElement: FormElement = {
   type,
   construct: (id: string) => ({
     id,
@@ -120,8 +269,8 @@ export const TextFieldFormElement: FormElement = {
     properties,
   }),
   designerBtnElement: {
-    icon: MdTextFields,
-    label: "Text Field",
+    icon: MdOutlineMoreTime,
+    label: "Date & Time",
   },
   designerComponent: DesignerComponent,
   formComponent: FormComponent,
@@ -135,7 +284,6 @@ export const TextFieldFormElement: FormElement = {
 
     if (
       !normalizedProperties.visible ||
-      normalizedProperties.readOnly ||
       normalizedProperties.collapseState === "collapsed" ||
       normalizedProperties.collapseState === "locked"
     ) {
@@ -151,7 +299,7 @@ export const TextFieldFormElement: FormElement = {
 };
 
 type CustomInstance = FormElementInstance & {
-  properties: TextFieldProperties;
+  properties: DateTimeFieldProperties;
 };
 
 function DesignerComponent({
@@ -172,6 +320,7 @@ function DesignerComponent({
     collapseState,
     alignment,
     indent,
+    useCurrentDateTime,
   } = getProperties(instance.properties);
 
   return (
@@ -192,10 +341,11 @@ function DesignerComponent({
         </Label>
       )}
       {collapseState !== "collapsed" && (
-        <Input
+        <DateTimePicker
+          value={useCurrentDateTime && visible ? getCurrentBrowserDateTime() : ""}
+          placeholder={placeholder}
           readOnly
           disabled={readOnly || collapseState === "locked"}
-          placeholder={placeholder}
           className={alignmentClassMap[alignment]}
         />
       )}
@@ -225,13 +375,7 @@ function FormComponent({
   defaultValue?: string;
 }) {
   const instance = elementInstance as CustomInstance;
-  const [value, setValue] = useState(defaultValue || "");
   const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setError(isInvalid === true);
-  }, [isInvalid]);
-
   const {
     label,
     required,
@@ -244,46 +388,66 @@ function FormComponent({
     collapseState,
     alignment,
     indent,
+    useCurrentDateTime,
   } = getProperties(instance.properties);
+  const [value, setValue] = useState(
+    defaultValue || (useCurrentDateTime ? getCurrentBrowserDateTime() : ""),
+  );
 
-  if (!visible) return null;
+  useEffect(() => {
+    setError(isInvalid === true);
+  }, [isInvalid]);
+
+  useEffect(() => {
+    const nextValue =
+      defaultValue || (useCurrentDateTime ? getCurrentBrowserDateTime() : "");
+    setValue(nextValue);
+
+    if (submitValue && useCurrentDateTime && nextValue.length > 0) {
+      submitValue(elementInstance.id, nextValue);
+    }
+  }, [defaultValue, elementInstance.id, submitValue, useCurrentDateTime]);
+
+  if (!visible) {
+    return null;
+  }
+
   return (
-    <div className={cn(getWrapperClassName(alignment, indent), 'relative')}>
+    <div className={getWrapperClassName(alignment, indent)}>
       {showTitle && (
         <Label
-          className={cn(
-            alignmentClassMap[alignment],
-            error && "text-red-500",
-          )}
+          className={cn(alignmentClassMap[alignment], error && "text-red-500")}
         >
           {label}
           {required ? "*" : ""}
         </Label>
       )}
       {collapseState !== "collapsed" && (
-        <Input
-          className={cn(
-            alignmentClassMap[alignment],
-            error && "border-red-500",
-          )}
+        <DateTimePicker
+          value={useCurrentDateTime ? getCurrentBrowserDateTime() : value}
           placeholder={placeholder}
           readOnly={readOnly}
           disabled={collapseState === "locked"}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={(e) => {
+          invalid={error}
+          className={alignmentClassMap[alignment]}
+          onChange={(nextValue) => {
+            setValue(nextValue);
+
             if (!submitValue || readOnly || collapseState === "locked") {
               return;
             }
 
-            const valid = TextFieldFormElement.validate(
+            const valid = DateTimeFieldFormElement.validate(
               elementInstance,
-              e.target.value,
+              nextValue,
             );
             setError(!valid);
-            if (!valid) return;
-            submitValue(elementInstance.id, e.target.value);
+            if (!valid) {
+              return;
+            }
+
+            submitValue(elementInstance.id, nextValue);
           }}
-          value={value}
         />
       )}
       {showDescription && helpertext && (
@@ -301,7 +465,8 @@ function FormComponent({
   );
 }
 
-type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+type PropertiesFormSchemaType = z.infer<typeof propertiesSchema>;
+
 function PropertiesComponent({
   elementInstance,
 }: {
@@ -309,7 +474,7 @@ function PropertiesComponent({
 }) {
   const instance = elementInstance as CustomInstance;
   const { updateElement } = useDesigner();
-  const form = useForm<propertiesFormSchemaType>({
+  const form = useForm<PropertiesFormSchemaType>({
     resolver: zodResolver(propertiesSchema),
     mode: "onBlur",
     defaultValues: getProperties(instance.properties),
@@ -319,36 +484,12 @@ function PropertiesComponent({
     form.reset(getProperties(instance.properties));
   }, [instance, form]);
 
-  function applyChanges(values: propertiesFormSchemaType) {
-    const {
-      label,
-      helpertext,
-      placeholder,
-      visible,
-      readOnly,
-      showTitle,
-      showDescription,
-      collapseState,
-      alignment,
-      indent,
-      required,
-    } = values;
-
+  function applyChanges(values: PropertiesFormSchemaType) {
     updateElement(instance.id, {
       ...instance,
       properties: {
         ...instance.properties,
-        label,
-        helpertext,
-        placeholder,
-        visible,
-        readOnly,
-        showTitle,
-        showDescription,
-        collapseState,
-        alignment,
-        indent,
-        required,
+        ...values,
       },
     });
   }
@@ -357,8 +498,8 @@ function PropertiesComponent({
     <Form {...form}>
       <form
         onBlur={form.handleSubmit(applyChanges)}
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
         }}
         className="space-y-4"
       >
@@ -369,7 +510,10 @@ function PropertiesComponent({
             <TabsTrigger value="condition">Condition</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="general"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="label"
@@ -379,12 +523,16 @@ function PropertiesComponent({
                   <FormControl>
                     <Input
                       {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed above the text field.</FormDescription>
+                  <FormDescription>
+                    Displayed above the date and time field.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -400,14 +548,19 @@ function PropertiesComponent({
                     <Textarea
                       {...field}
                       rows={3}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                          e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          (event.ctrlKey || event.metaKey)
+                        ) {
+                          event.currentTarget.blur();
                         }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed below the text field.</FormDescription>
+                  <FormDescription>
+                    Displayed below the date and time field.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -422,12 +575,38 @@ function PropertiesComponent({
                   <FormControl>
                     <Input
                       {...field}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.currentTarget.blur();
+                        }
                       }}
                     />
                   </FormControl>
-                  <FormDescription>Displayed inside the input when it is empty.</FormDescription>
+                  <FormDescription>
+                    Shown when the field is not auto-filled.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="useCurrentDateTime"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Use current browser date and time</FormLabel>
+                    <FormDescription>
+                      Automatically capture the visitor's current local date and time in the browser.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -443,7 +622,10 @@ function PropertiesComponent({
                     <FormDescription>Show or hide the field.</FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -457,10 +639,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Required</FormLabel>
-                    <FormDescription>Require input before submission.</FormDescription>
+                    <FormDescription>
+                      Require a date and time before the form can be submitted.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -474,10 +661,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Read-only</FormLabel>
-                    <FormDescription>Display the field without allowing edits.</FormDescription>
+                    <FormDescription>
+                      Display the date and time without allowing edits.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -491,10 +683,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show title</FormLabel>
-                    <FormDescription>Render the title above the field.</FormDescription>
+                    <FormDescription>
+                      Render the title above the field.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -508,10 +705,15 @@ function PropertiesComponent({
                 <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                   <div className="space-y-0.5">
                     <FormLabel>Show description</FormLabel>
-                    <FormDescription>Render the description below the field.</FormDescription>
+                    <FormDescription>
+                      Render the description below the field.
+                    </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -519,7 +721,10 @@ function PropertiesComponent({
             />
           </TabsContent>
 
-          <TabsContent value="layout" className="space-y-4 rounded-xl border p-4">
+          <TabsContent
+            value="layout"
+            className="space-y-4 rounded-xl border p-4"
+          >
             <FormField
               control={form.control}
               name="collapseState"
@@ -538,7 +743,9 @@ function PropertiesComponent({
                       <SelectItem value="expanded">Expanded</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Control whether the field is shown, hidden, or locked.</FormDescription>
+                  <FormDescription>
+                    Control whether the field is shown, hidden, or locked.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -562,7 +769,9 @@ function PropertiesComponent({
                       <SelectItem value="right">Right</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Align the title, input text, and description.</FormDescription>
+                  <FormDescription>
+                    Align the title, date-time input, and description.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -590,11 +799,14 @@ function PropertiesComponent({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Offset the field from the left edge of the layout.</FormDescription>
+                  <FormDescription>
+                    Offset the field from the left edge of the layout.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <ElementLayoutSection element={elementInstance} />
           </TabsContent>
 

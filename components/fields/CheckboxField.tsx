@@ -36,6 +36,7 @@ import { Checkbox } from "../ui/checkbox";
 import { cn } from "@/lib/utils";
 import { MdCheckBox } from "react-icons/md";
 import ElementLayoutSection from "../ElementLayoutSection";
+import HiddenDesignerIndicator from "../HiddenDesignerIndicator";
 
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
@@ -181,12 +182,15 @@ function DesignerComponent({
     required,
   } = getProperties(instance.properties);
 
-  if (!visible) {
-    return null;
-  }
-
   return (
-    <div className={getWrapperClassName(alignment, indent)}>
+    <div
+      className={cn(
+        getWrapperClassName(alignment, indent),
+        "relative rounded-lg border border-dashed border-transparent p-3",
+        !visible && "border-red-200 bg-slate-50/80 opacity-75",
+      )}
+    >
+      {!visible && <HiddenDesignerIndicator />}
       {collapseState !== "collapsed" && (
         <div
           className={cn(

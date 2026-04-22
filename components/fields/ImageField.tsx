@@ -34,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { cn } from "@/lib/utils";
 import { MdImage } from "react-icons/md";
 import ElementLayoutSection from "../ElementLayoutSection";
+import HiddenDesignerIndicator from "../HiddenDesignerIndicator";
 
 type ImageAlignment = "left" | "center" | "right";
 type ImageFit = "contain" | "cover";
@@ -148,17 +149,15 @@ function DesignerComponent({
   const instance = elementInstance as CustomInstance;
   const normalizedProperties = getProperties(instance.properties);
 
-  if (!normalizedProperties.visible) {
-    return null;
-  }
-
   return (
     <div
       className={cn(
-        "flex w-full flex-col gap-3",
+        "relative flex w-full flex-col gap-3 rounded-lg border border-dashed border-transparent p-3",
         alignmentClassMap[normalizedProperties.alignment],
+        !normalizedProperties.visible && "border-red-200 bg-slate-50/80 opacity-75",
       )}
     >
+      {!normalizedProperties.visible && <HiddenDesignerIndicator />}
       <ImagePreview properties={normalizedProperties} />
       {normalizedProperties.showCaption && normalizedProperties.caption && (
         <p className="text-[0.8rem] text-muted-foreground">

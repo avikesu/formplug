@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -7,8 +8,12 @@ import {
   SubmitFunction,
 } from "../FormElements";
 import { MdDateRange } from "react-icons/md";
+import { CalendarIcon } from "lucide-react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Calendar } from "../ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import ElementLayoutSection from "../ElementLayoutSection";
+import HiddenDesignerIndicator from "../HiddenDesignerIndicator";
 
 type CollapseState = "locked" | "collapsed" | "expanded";
 type Alignment = "left" | "center" | "right";
@@ -120,6 +126,103 @@ function getCurrentBrowserDate() {
     .slice(0, 10);
 }
 
+function parseDateValue(value: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsedDate = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return undefined;
+  }
+
+  return parsedDate;
+}
+
+function toLocalDateValue(date: Date) {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+
+  const offsetMilliseconds = normalizedDate.getTimezoneOffset() * 60_000;
+  return new Date(normalizedDate.getTime() - offsetMilliseconds)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function formatDateDisplay(value: string, placeholder: string) {
+  const parsedDate = parseDateValue(value);
+  if (!parsedDate) {
+    return placeholder;
+  }
+
+  return parsedDate.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function DatePicker({
+  value,
+  placeholder,
+  disabled,
+  readOnly,
+  invalid,
+  className,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  invalid?: boolean;
+  className?: string;
+  onChange?: (nextValue: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedDate = parseDateValue(value);
+  const isDisabled = disabled || readOnly;
+
+  return (
+    <Popover open={isDisabled ? false : open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isDisabled}
+          className={cn(
+            "w-full justify-between font-normal",
+            !selectedDate && "text-muted-foreground",
+            invalid && "border-red-500",
+            className,
+          )}
+        >
+          <span className="truncate">
+            {formatDateDisplay(value, placeholder)}
+          </span>
+          <CalendarIcon className="ml-2 size-4 shrink-0 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(nextDate) => {
+            if (!nextDate) {
+              return;
+            }
+
+            onChange?.(toLocalDateValue(nextDate));
+            setOpen(false);
+          }}
+          initialFocus
+          captionLayout="dropdown"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const type: ElementsType = "DateField";
 export const DateFieldFormElement: FormElement = {
   type,
@@ -183,12 +286,17 @@ function DesignerComponent({
     useCurrentDate,
   } = getProperties(instance.properties);
 
-  if (!visible) {
-    return null;
-  }
-
   return (
-    <div className={getWrapperClassName(alignment, indent)}>
+    <div
+      className={cn(
+        getWrapperClassName(alignment, indent),
+        "relative rounded-lg border border-dashed border-transparent p-3",
+        !visible && "border-red-200 bg-slate-50/80 opacity-75",
+      )}
+    >
+      {!visible && (
+        <HiddenDesignerIndicator />
+      )}
       {showTitle && (
         <Label className={alignmentClassMap[alignment]}>
           {label}
@@ -196,12 +304,11 @@ function DesignerComponent({
         </Label>
       )}
       {collapseState !== "collapsed" && (
-        <Input
+        <DatePicker
+          value={useCurrentDate && visible ? getCurrentBrowserDate() : ""}
+          placeholder={placeholder}
           readOnly
           disabled={readOnly || collapseState === "locked"}
-          type="date"
-          placeholder={placeholder}
-          value={useCurrentDate ? getCurrentBrowserDate() : ""}
           className={alignmentClassMap[alignment]}
         />
       )}
@@ -279,30 +386,31 @@ function FormComponent({
         </Label>
       )}
       {collapseState !== "collapsed" && (
-        <Input
-          type="date"
-          className={cn(
-            alignmentClassMap[alignment],
-            error && "border-red-500",
-          )}
+        <DatePicker
+          value={useCurrentDate ? getCurrentBrowserDate() : value}
           placeholder={placeholder}
           readOnly={readOnly}
           disabled={collapseState === "locked"}
-          onChange={(event) => setValue(event.target.value)}
-          onBlur={(event) => {
+          invalid={error}
+          className={alignmentClassMap[alignment]}
+          onChange={(nextValue) => {
+            setValue(nextValue);
+
             if (!submitValue || readOnly || collapseState === "locked") {
               return;
             }
 
             const valid = DateFieldFormElement.validate(
               elementInstance,
-              event.target.value,
+              nextValue,
             );
             setError(!valid);
-            if (!valid) return;
-            submitValue(elementInstance.id, event.target.value);
+            if (!valid) {
+              return;
+            }
+
+            submitValue(elementInstance.id, nextValue);
           }}
-          value={value}
         />
       )}
       {showDescription && helpertext && (
