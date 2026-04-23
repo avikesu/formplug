@@ -124,6 +124,7 @@ async function SubmissionsTable({ id }: { id: number }) {
   formElements.forEach((element) => {
     switch (element.type) {
       case "TextField":
+      case "DropdownField":
         const label =
           typeof element.properties?.label === "string"
             ? element.properties.label
