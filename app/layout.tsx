@@ -27,8 +27,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const clerkLocalization = {
+    signIn: {
+      start: {
+        title: "Sign in to Fromplug",
+        subtitle: "Welcome back! Please sign in to continue",
+      },
+    },
+  };
+
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={clerkLocalization}>
       <html lang="en" suppressHydrationWarning>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
