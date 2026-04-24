@@ -3,6 +3,7 @@ import { DateFieldFormElement } from "./fields/DateField";
 import { DateTimeFieldFormElement } from "./fields/DateTimeField";
 import { DropdownFieldFormElement } from "./fields/DropdownField";
 import { ImageFieldFormElement } from "./fields/ImageField";
+import { GridFieldFormElement } from "./fields/GridField";
 import { NumberFieldFormElement } from "./fields/NumberField";
 import { ParagraphFieldFormElement } from "./fields/ParagraphField";
 import { SeparatorFieldFormElement } from "./fields/SeparatorField";
@@ -18,6 +19,7 @@ export type DefaultElementsType =
   | "DateTimeField"
   | "DropdownField"
   | "ImageField"
+  | "GridField"
   | "TextField"
   | "TitleField"
   | "SubTitleField"
@@ -76,6 +78,7 @@ const defaultFormElements: FormElementsRegistry = {
   DateTimeField: DateTimeFieldFormElement,
   DropdownField: DropdownFieldFormElement,
   ImageField: ImageFieldFormElement,
+  GridField: GridFieldFormElement,
   TextField: TextFieldFormElement,
   TitleField: TitleFieldFormElement,
   SubTitleField: SubTitleFieldFormElement,
@@ -90,6 +93,7 @@ export const defaultFormElementSidebarGroups: FormElementSidebarGroup[] = [
   {
     label: "Layout elements",
     elementTypes: [
+      "GridField",
       "TitleField",
       "SubTitleField",
       "ParagraphField",

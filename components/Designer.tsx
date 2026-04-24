@@ -45,6 +45,7 @@ function Designer({ formName }: { formName: string | null }) {
     removePage: removePageFromContext,
     elements,
     addElement,
+    addElementToGrid,
     removeElement,
     selectedElement,
     setSelectedElement,
@@ -162,6 +163,41 @@ function Designer({ formName }: { formName: string | null }) {
           indexForNewelement = overElementIndex + 1;
         }
         addElement(indexForNewelement, newElement);
+        return;
+      }
+
+      const isDroppingOverGridDropArea = over.data?.current?.isGridDropArea;
+      if (isDroppingOverGridDropArea) {
+        const gridElementId = over.data?.current?.elementId;
+        if (!gridElementId) {
+          return;
+        }
+
+        if (isDesignerBtnElement) {
+          const type = active.data?.current?.type;
+          const newElement = getFormElement(
+            registry,
+            type as ElementsType,
+          ).construct(idGenerator());
+          addElementToGrid(gridElementId, newElement);
+          return;
+        }
+
+        const isDraggingDesignerElement =
+          active.data?.current?.isDesignerElement;
+        if (isDraggingDesignerElement) {
+          const activeElementId = active.data?.current?.elementId;
+          const activeElementIndex = elements.findIndex(
+            (el) => el.id === activeElementId,
+          );
+          if (activeElementIndex === -1) {
+            throw new Error("Element not found.");
+          }
+
+          const activeElement = { ...elements[activeElementIndex] };
+          removeElement?.(activeElementId);
+          addElementToGrid(gridElementId, activeElement);
+        }
         return;
       }
 

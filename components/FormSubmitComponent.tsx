@@ -34,6 +34,7 @@ import {
   getElementLayout,
   sortElementsByLayout,
 } from "@/lib/form-element-layout";
+import { flattenElementTree } from "./element-tree";
 
 const layoutOnlyElementTypes = new Set([
   "TitleField",
@@ -225,17 +226,17 @@ function FormSubmitContent({
   const validateForm: () => boolean = useCallback(() => {
     const nextErrors: Record<string, boolean> = {};
 
-    for (const page of visiblePages) {
-      for (const element of page.elements) {
-        const actualValue = formValues[element.id] || "";
-        const valid = getFormElement(registry, element.type).validate(
-          element,
-          actualValue,
-        );
+    for (const element of flattenElementTree(
+      visiblePages.flatMap((page) => page.elements),
+    )) {
+      const actualValue = formValues[element.id] || "";
+      const valid = getFormElement(registry, element.type).validate(
+        element,
+        actualValue,
+      );
 
-        if (!valid) {
-          nextErrors[element.id] = true;
-        }
+      if (!valid) {
+        nextErrors[element.id] = true;
       }
     }
 

@@ -7,6 +7,11 @@ import {
 } from "@/lib/form-builder-settings";
 import { createDefaultFormPage, FormPageDocument } from "@/lib/form-pages";
 import {
+  appendElementToGrid,
+  removeElementFromTree,
+  updateElementInTree,
+} from "../element-tree";
+import {
   Dispatch,
   ReactNode,
   SetStateAction,
@@ -30,6 +35,7 @@ type DesignerContextType = {
   setSettings: Dispatch<SetStateAction<FormBuilderSettings>>;
   updateSettings: (settings: Partial<FormBuilderSettings>) => void;
   addElement: (index: number, element: FormElementInstance) => void;
+  addElementToGrid: (gridId: string, element: FormElementInstance) => void;
   removeElement?: (id: string) => void;
 
   selectedElement: FormElementInstance | null;
@@ -147,7 +153,7 @@ export default function DesignerContextProvider({
     setSelectedElement((currentSelectedElement) =>
       currentSelectedElement?.id === id ? null : currentSelectedElement,
     );
-    setElements((prev) => prev.filter((el) => el.id !== id));
+    setElements((prev) => removeElementFromTree(prev, id));
   };
 
   const updateElement = (id: string, element: FormElementInstance) => {
@@ -155,11 +161,12 @@ export default function DesignerContextProvider({
       currentSelectedElement?.id === id ? element : currentSelectedElement,
     );
     setElements((prev) => {
-      const newElements = [...prev];
-      const index = newElements.findIndex((el) => el.id === id);
-      newElements[index] = element;
-      return newElements;
+      return updateElementInTree(prev, id, element);
     });
+  };
+
+  const addElementToGrid = (gridId: string, element: FormElementInstance) => {
+    setElements((prev) => appendElementToGrid(prev, gridId, element));
   };
 
   return (
@@ -177,6 +184,7 @@ export default function DesignerContextProvider({
         elements,
         settings,
         addElement: addelement,
+        addElementToGrid,
         setElements,
         setSettings,
         updateSettings,
