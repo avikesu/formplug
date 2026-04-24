@@ -5,8 +5,10 @@ import {
   FormElement,
   FormElementInstance,
 } from "../FormElements";
+import { Badge } from "../ui/badge";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { Switch } from "../ui/switch";
 import z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,13 +23,22 @@ import {
   FormMessage,
 } from "../ui/form";
 import { LuHeading1 } from "react-icons/lu";
+import {
+  textFieldSizeOptions,
+  titleSizeClassMap,
+  type TextFieldSize,
+} from "./textFieldVariants";
 
 const properties = {
   title: "Title Field",
+  fontSize: "medium" as TextFieldSize,
+  visible: true,
 };
 
 const propertiesSchema = z.object({
-  title: z.string().min(2).max(50),
+  title: z.string().min(2).max(100),
+  fontSize: z.enum(["xsmall", "small", "medium", "large"]),
+  visible: z.boolean(),
 });
 
 const type: ElementsType = "TitleField";
@@ -58,11 +69,25 @@ function DesignerComponent({
   elementInstance: FormElementInstance;
 }) {
   const instance = elementInstance as CustomInstance;
-  const { title } = instance.properties;
+  const { title, fontSize, visible } = instance.properties;
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <Label className="text-muted-foreground">Title field</Label>
-      <p className="text-xl">{title}</p>
+    <div className="flex w-full flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Label className="text-muted-foreground">Title field</Label>
+        <Badge
+          variant="outline"
+          className="text-[11px] uppercase tracking-wide"
+        >
+          {fontSize}
+        </Badge>
+        <Badge
+          variant={visible ? "secondary" : "outline"}
+          className="text-[11px] uppercase tracking-wide"
+        >
+          {visible ? "Visible" : "Hidden"}
+        </Badge>
+      </div>
+      <p className={titleSizeClassMap[fontSize]}>{title}</p>
     </div>
   );
 }
@@ -74,8 +99,17 @@ function FormComponent({
 }) {
   const instance = elementInstance as CustomInstance;
 
-  const { title } = instance.properties;
-  return <p className="text-xl font-semibold tracking-tight text-foreground">{title}</p>;
+  const { title, fontSize, visible } = instance.properties;
+  if (!visible) {
+    return null;
+  }
+  return (
+    <p
+      className={`font-semibold tracking-tight text-foreground ${titleSizeClassMap[fontSize]}`}
+    >
+      {title}
+    </p>
+  );
 }
 
 type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
@@ -91,6 +125,8 @@ function PropertiesComponent({
     mode: "onBlur",
     defaultValues: {
       title: instance.properties.title,
+      fontSize: instance.properties.fontSize,
+      visible: instance.properties.visible,
     },
   });
 
@@ -99,12 +135,14 @@ function PropertiesComponent({
   }, [instance, form]);
 
   function applyChanges(values: propertiesFormSchemaType) {
-    const { title } = values;
+    const { title, fontSize, visible } = values;
     updateElement(instance.id, {
       ...instance,
       properties: {
         ...instance.properties,
         title,
+        fontSize,
+        visible,
       },
     });
   }
@@ -127,15 +165,65 @@ function PropertiesComponent({
               <FormControl>
                 <Input
                   {...field}
+                  maxLength={100}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
                   }}
                 />
               </FormControl>
+              <p className="text-xs text-muted-foreground">
+                Maximum 100 characters.
+              </p>
               <FormMessage />
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="fontSize"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Font size</FormLabel>
+              <FormControl>
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none"
+                  value={field.value}
+                  onChange={field.onChange}
+                >
+                  {textFieldSizeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </FormControl>
+              <p className="text-xs text-muted-foreground">
+                Title sizes always stay above subtitle sizes.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div>
+            <FormLabel className="text-sm font-medium">Visible</FormLabel>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Hide or show this title block.
+            </p>
+          </div>
+          <FormField
+            control={form.control}
+            name="visible"
+            render={({ field }) => (
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            )}
+          />
+        </div>
       </form>
     </Form>
   );

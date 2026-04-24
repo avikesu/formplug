@@ -222,7 +222,9 @@ function Designer({ formName }: { formName: string | null }) {
                 }}
               >
                 <TbForms />
-                {page.title || `Page ${index + 1}`}
+                {page.showName
+                  ? page.title || `Page ${index + 1}`
+                  : `Page ${index + 1}`}
               </Button>
             ))}
             <Button
@@ -272,23 +274,32 @@ function Designer({ formName }: { formName: string | null }) {
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p
-                    className={cn(
-                      "text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground",
-                      `${pageClassName}-eyebrow`,
+                  <div className="flex flex-wrap items-center gap-2">
+                    {activePage.showName && (
+                      <p
+                        className={cn(
+                          "text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground",
+                          `${pageClassName}-eyebrow`,
+                        )}
+                      >
+                        Form: {formName?.trim() || "Untitled form"}
+                      </p>
                     )}
-                  >
-                    Form: {formName?.trim() || "Untitled form"}
-                  </p>
-                  <h3
-                    className={cn(
-                      "mt-2 text-2xl font-semibold text-foreground",
-                      `${pageClassName}-heading`,
-                    )}
-                  >
-                    {activePage.title || "Untitled page"}
-                  </h3>
-                  {activePage.description && (
+                    <span className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {activePage.visible ? "Visible" : "Hidden"}
+                    </span>
+                  </div>
+                  {activePage.showTitle && (
+                    <h3
+                      className={cn(
+                        "mt-2 text-2xl font-semibold text-foreground",
+                        `${pageClassName}-heading`,
+                      )}
+                    >
+                      {activePage.title || "Untitled page"}
+                    </h3>
+                  )}
+                  {activePage.showDescription && activePage.description && (
                     <p
                       className={cn(
                         "mt-2 max-w-2xl text-sm text-muted-foreground",

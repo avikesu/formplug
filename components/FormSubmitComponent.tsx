@@ -377,21 +377,21 @@ function FormSubmitContent({
               alignmentClass,
             )}
           >
-            {settings.showPageHeader &&
-              currentPage &&
-              (currentPage.title || currentPage.description) && (
+            {settings.showPageHeader && currentPage && (
               <div className={cn("pb-4", `${pageClassName}-header`)}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p
-                      className={cn(
-                        "text-xs font-medium uppercase tracking-wide text-muted-foreground/80",
-                        `${pageClassName}-eyebrow`,
-                      )}
-                    >
-                      {currentPage.name}
-                    </p>
-                    {currentPage.title && (
+                    {currentPage.showName && (
+                      <p
+                        className={cn(
+                          "text-xs font-medium uppercase tracking-wide text-muted-foreground/80",
+                          `${pageClassName}-eyebrow`,
+                        )}
+                      >
+                        {currentPage.name}
+                      </p>
+                    )}
+                    {currentPage.showTitle && currentPage.title && (
                       <h2
                         className={cn(
                           "mt-1 text-lg font-semibold text-foreground",
@@ -401,7 +401,7 @@ function FormSubmitContent({
                         {currentPage.title}
                       </h2>
                     )}
-                    {currentPage.description && (
+                    {currentPage.showDescription && currentPage.description && (
                       <p
                         className={cn(
                           "mt-1 text-sm leading-6 text-muted-foreground",
@@ -492,7 +492,8 @@ function FormSubmitContent({
                   </Button>
                 )}
 
-                {hasMultiplePages && currentPageIndex < visiblePages.length - 1 ? (
+                {hasMultiplePages &&
+                currentPageIndex < visiblePages.length - 1 ? (
                   <Button
                     className="rounded-lg bg-primary px-6 font-medium text-primary-foreground hover:bg-primary/90"
                     onClick={() =>

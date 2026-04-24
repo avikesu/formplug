@@ -21,13 +21,31 @@ import {
 } from "../ui/form";
 import { BsTextParagraph } from "react-icons/bs";
 import { Textarea } from "../ui/textarea";
+import { Badge } from "../ui/badge";
+import {
+  paragraphSizeClassMap,
+  textFieldSizeOptions,
+  type TextFieldSize,
+} from "./textFieldVariants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Switch } from "../ui/switch";
 
 const properties = {
   text: "Text here",
+  fontSize: "medium" as TextFieldSize,
+  visible: true,
 };
 
 const propertiesSchema = z.object({
-  text: z.string().min(2).max(500),
+  text: z.string().min(2).max(1000),
+  fontSize: z.enum(["xsmall", "small", "medium", "large"]),
+  visible: z.boolean(),
 });
 
 const type: ElementsType = "ParagraphField";
@@ -58,11 +76,25 @@ function DesignerComponent({
   elementInstance: FormElementInstance;
 }) {
   const instance = elementInstance as CustomInstance;
-  const { text } = instance.properties;
+  const { text, fontSize, visible } = instance.properties;
   return (
     <div className="flex flex-col gap-2 w-full">
-      <Label className="text-muted-foreground">Paragraph field</Label>
-      <p>{text}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Label className="text-muted-foreground">Paragraph field</Label>
+        <Badge
+          variant="outline"
+          className="text-[11px] uppercase tracking-wide"
+        >
+          {fontSize}
+        </Badge>
+        <Badge
+          variant={visible ? "secondary" : "outline"}
+          className="text-[11px] uppercase tracking-wide"
+        >
+          {visible ? "Visible" : "Hidden"}
+        </Badge>
+      </div>
+      <p className={paragraphSizeClassMap[fontSize]}>{text}</p>
     </div>
   );
 }
@@ -74,8 +106,17 @@ function FormComponent({
 }) {
   const instance = elementInstance as CustomInstance;
 
-  const { text } = instance.properties;
-  return <p className="w-full whitespace-pre-wrap text-base leading-7 text-foreground">{text}</p>;
+  const { text, fontSize, visible } = instance.properties;
+  if (!visible) {
+    return null;
+  }
+  return (
+    <p
+      className={`w-full whitespace-pre-wrap leading-7 text-foreground ${paragraphSizeClassMap[fontSize]}`}
+    >
+      {text}
+    </p>
+  );
 }
 
 type propertiesFormSchemaType = z.infer<typeof propertiesSchema>;
@@ -91,6 +132,8 @@ function PropertiesComponent({
     mode: "onBlur",
     defaultValues: {
       text: instance.properties.text,
+      fontSize: instance.properties.fontSize,
+      visible: instance.properties.visible,
     },
   });
 
@@ -99,12 +142,14 @@ function PropertiesComponent({
   }, [instance, form]);
 
   function applyChanges(values: propertiesFormSchemaType) {
-    const { text } = values;
+    const { text, fontSize, visible } = values;
     updateElement(instance.id, {
       ...instance,
       properties: {
         ...instance.properties,
         text,
+        fontSize,
+        visible,
       },
     });
   }
@@ -126,17 +171,65 @@ function PropertiesComponent({
               <FormLabel>Text</FormLabel>
               <FormControl>
                 <Textarea
-                  rows={5}
+                  rows={6}
+                  maxLength={1000}
                   {...field}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
                   }}
                 />
               </FormControl>
+              <p className="text-xs text-muted-foreground">
+                Maximum 1000 characters.
+              </p>
               <FormMessage />
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="fontSize"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Font size</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select font size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {textFieldSizeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div>
+            <FormLabel className="text-sm font-medium">Visible</FormLabel>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Hide or show this paragraph block.
+            </p>
+          </div>
+          <FormField
+            control={form.control}
+            name="visible"
+            render={({ field }) => (
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            )}
+          />
+        </div>
       </form>
     </Form>
   );

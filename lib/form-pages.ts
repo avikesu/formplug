@@ -29,6 +29,9 @@ export type FormPageDocument = {
   title: string;
   description: string;
   visible: boolean;
+  showName: boolean;
+  showTitle: boolean;
+  showDescription: boolean;
   visibleIf: string;
   readOnly: boolean;
   enableIf: string;
@@ -62,6 +65,9 @@ export const defaultFormPageProperties: Omit<FormPageDocument, "id" | "name"> =
     title: "",
     description: "",
     visible: true,
+    showName: true,
+    showTitle: true,
+    showDescription: true,
     visibleIf: "",
     readOnly: false,
     enableIf: "",
@@ -150,6 +156,18 @@ export function normalizeFormPageDocument(
       typeof candidate.visible === "boolean"
         ? candidate.visible
         : fallbackPage.visible,
+    showName:
+      typeof candidate.showName === "boolean"
+        ? candidate.showName
+        : fallbackPage.showName,
+    showTitle:
+      typeof candidate.showTitle === "boolean"
+        ? candidate.showTitle
+        : fallbackPage.showTitle,
+    showDescription:
+      typeof candidate.showDescription === "boolean"
+        ? candidate.showDescription
+        : fallbackPage.showDescription,
     visibleIf:
       typeof candidate.visibleIf === "string"
         ? candidate.visibleIf

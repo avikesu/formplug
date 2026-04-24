@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
+import { Badge } from "./ui/badge";
 import {
   Select,
   SelectContent,
@@ -106,7 +107,12 @@ function PagePropertiesSidebar() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Page name</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Page name</Label>
+                <Badge variant={activePage.showName ? "secondary" : "outline"}>
+                  {activePage.showName ? "Visible" : "Hidden"}
+                </Badge>
+              </div>
               <Input
                 value={activePage.name}
                 onChange={(event) =>
@@ -114,10 +120,29 @@ function PagePropertiesSidebar() {
                 }
                 placeholder="page1"
               />
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                <div>
+                  <Label className="text-sm font-medium">Show page name</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Hide or show the page name in the designer and form header.
+                  </p>
+                </div>
+                <Switch
+                  checked={activePage.showName}
+                  onCheckedChange={(checked) =>
+                    updateCurrentPage({ showName: checked })
+                  }
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Page title</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Page title</Label>
+                <Badge variant={activePage.showTitle ? "secondary" : "outline"}>
+                  {activePage.showTitle ? "Visible" : "Hidden"}
+                </Badge>
+              </div>
               <Input
                 value={activePage.title}
                 onChange={(event) =>
@@ -125,10 +150,31 @@ function PagePropertiesSidebar() {
                 }
                 placeholder="Page title"
               />
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                <div>
+                  <Label className="text-sm font-medium">Show page title</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Hide or show the page title in preview and public forms.
+                  </p>
+                </div>
+                <Switch
+                  checked={activePage.showTitle}
+                  onCheckedChange={(checked) =>
+                    updateCurrentPage({ showTitle: checked })
+                  }
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Description</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Description</Label>
+                <Badge
+                  variant={activePage.showDescription ? "secondary" : "outline"}
+                >
+                  {activePage.showDescription ? "Visible" : "Hidden"}
+                </Badge>
+              </div>
               <Textarea
                 rows={3}
                 value={activePage.description}
@@ -137,6 +183,23 @@ function PagePropertiesSidebar() {
                 }
                 placeholder="Short helper text under the page title"
               />
+              <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Show description
+                  </Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Hide or show the page description in preview and public
+                    forms.
+                  </p>
+                </div>
+                <Switch
+                  checked={activePage.showDescription}
+                  onCheckedChange={(checked) =>
+                    updateCurrentPage({ showDescription: checked })
+                  }
+                />
+              </div>
             </div>
 
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
